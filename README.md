@@ -1,2 +1,2 @@
 # Testes_Velocity_Verlet
-Programa principal para dinâmica utilizando Velocity Verlet, apenas com elétrons.
+Programa principal para dinâmica utilizando Velocity Verlet.
