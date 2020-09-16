@@ -7,21 +7,15 @@ use parameters_m
 use constants_m
 use overlap_m
 use system_hamiltonian_m
-use system_operators_m
 use rdftensor_m
 use functions_m
 use ordinary_equation_solution
-use plot_auto_function_m
-use gnugraphs_m
-!use edo_solver_m
 use testes
 use verlet_m 
-!use rkf45_m 
 
 implicit none
 
 
-call create_FT_func
 
 call call_ODE_solver(nm_divisoes)
 
@@ -29,7 +23,16 @@ call call_ODE_solver(nm_divisoes)
 print*, "EVOLUCAO TERMINOU, FAZENDO ARQUIVOS RELACIONADOS &
 COM A FIGURA DOS SITIOS"
 
-!call calculate_fem_autofunction(sites_array)
+print*, "ARQUIVOS DE SAÍDA:"
+print*, "energiael -> energia do eletron Tr(H RHO);"
+print*, "energiazero -> energia do eletron no tempo inicial;"
+print*, "energiacinetica -> energia cinetica classica;"
+print*, "energiapotencial -> energia potencial classica;"
+print*, "energiatotal -> energiazero, energiael + energiacinetica + energiapotencial;"
+print*, "popSiteBasis -> populacao na base local;"
+print*, "popNonSiteBasis -> populacao na base dos autoestados do hamiltoniano;"
+print*, "radius -> raio do sitio 1, raio do sitio 2, ... ;"
+print*, "forces -> força no sitio 1, força no sitio2, ... "
 
 
 

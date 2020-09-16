@@ -13,76 +13,67 @@ public
 
 contains
 
-        
-pure real function soma_elemento(ham_size, i1, i2, matriz)
-!funcao para somar os elementos \sum_n Gamma(a, n, n, b)
+subroutine print_matrices(step, rho_sites_in, phi, hamiltoniana) 
 implicit none
-integer, INTENT(IN) :: ham_size, i1, i2
-real*8, DIMENSION(ham_size, ham_size, ham_size, ham_size), INTENT(IN) :: matriz
+integer, intent(in) :: step
+complex*16, intent(in), dimension(dim_el, dim_el) :: rho_sites_in
+real*8, intent(in), dimension(dim_el, dim_el) :: phi, hamiltoniana
 
 
-real*8 :: temporary
-integer :: i
-temporary = 0.d0
+real*8, allocatable, dimension(:, :) :: rhomtx
 
-do i = 1, ham_size
-    temporary = temporary + matriz(i1, i, i, i2)
-enddo
+allocate( rhomtx(dim_el, dim_el), source = 0.d0 ) 
 
-soma_elemento = temporary
+if ( step == 1 .OR. step == nm_divisoes/2 .OR. step == nm_divisoes ) then
+rhomtx = 0.d0
+rhomtx = real(rho_sites_in)
+print*, "PARTE REAL COMECO DO PROGRAMA"
+call print_mat2(rhomtx, dim_el, dim_el)
+rhomtx = 0.d0
+rhomtx = aimag(rho_sites_in)
+print*, "PARTE IMAGINARIA COMECO DO PROGRAMA"
+call print_mat2(rhomtx, dim_el, dim_el)
+print*, "autovetores"
+call print_mat2(phi, dim_el, dim_el)
+print*, "hamiltoniano"
+call print_mat2(hamiltoniana, dim_el, dim_el)
+endif
+
+
+deallocate(rhomtx) 
 return
-end function soma_elemento
-
-
-subroutine build_ovlp_pop(dims, ovlpm, rhom, pop) 
-implicit none
-integer, intent(in) :: dims
-real*8, dimension(dims, dims), intent(in) :: ovlpm 
-complex*16, dimension(dims, dims), intent(in) :: rhom
-complex*16, dimension(:, :), allocatable, intent(out) :: pop
-
-allocate(pop(dims, dims), source = (0.d0, 0.d0) ) 
-
-pop = ( matmul(rhom, ovlpm) + matmul(ovlpm, rhom) ) / 2.d0
-
-return 
-end subroutine build_ovlp_pop
-
-
-
-subroutine monta_rho(rho_size, vector, rho_matrix)
+end subroutine print_matrices       
+        
+subroutine monta_rho(vector, rho_matrix)
   !---- subrotina para montar uma matriz no tipo RHO ou RHOPONTO dado um vetor linha Y ou YP ---
   !A MATRIZ RHO FICA    RHO = (y(1) y(4) y(5)) + i (0    y(7) y(8) ) ou seja, temos dimensao*dimensao = 9 variavies
   !COMO (EX 3X3):             (y(4) y(2) y(6))     (y(7)  0   y(9) )          para resolver
   !                           (y(5) y(6) y(3))     (y(8) y(9)  0   )
 
 implicit none
-integer, intent(in) :: rho_size
-real*8, intent(in) :: vector(rho_size*rho_size)
-complex*16, intent(out) :: rho_matrix(rho_size, rho_size)
-real*8 :: matriz_real(rho_size, rho_size), matriz_imag(rho_size, rho_size)
+real*8, intent(in) :: vector(dim_el*dim_el)
+complex*16, intent(out) :: rho_matrix(dim_el, dim_el)
+real*8 :: matriz_real(dim_el, dim_el), matriz_imag(dim_el, dim_el)
 
 integer :: ndim  !numero de eq. pra resolver na matriz rho_real
 
 
 rho_matrix = 0.d0 + zi * 0.d0
-ndim = ((rho_size*(rho_size + 1)) / 2) !numero de eq. pra resolver na matriz rho_real
+ndim = ((dim_el*(dim_el + 1)) / 2) !numero de eq. pra resolver na matriz rho_real
 matriz_real = 0.d0 
 matriz_imag = 0.d0
 
 
-!--- PARTE DIAGONAL REAL ---
-!forall(i=1:rho_size) matriz_real(i, i) = vector(i)
-
-do i = 1, rho_size
+!=== PARTE DIAGONAL REAL ======
+do i = 1, dim_el
   matriz_real(i, i) = vector(i)
 enddo
+!===============================
 
-
-!--- PARTE NÃO DIAGONAL REAL ---
-k = rho_size + 1
-do j = 1, rho_size
-  do i = 1, rho_size
+!=== PARTE NÃO DIAGONAL REAL ===
+k = dim_el + 1
+do j = 1, dim_el
+  do i = 1, dim_el
     if (i > j) then
      matriz_real(i, j) = vector(k)
      matriz_real(j, i) = matriz_real(i, j)
@@ -90,12 +81,12 @@ do j = 1, rho_size
     endif
     enddo
 enddo
-!----------------------
+!==============================
 
-!--- PARTE NÃO DIAGONAL IMAGINÁRIA ---
+!==== PARTE NÃO DIAGONAL IMAGINÁRIA =====
 k = ndim + 1
-do j = 1, rho_size
-  do i = 1, rho_size
+do j = 1, dim_el
+  do i = 1, dim_el
     if (i > j) then
      matriz_imag(i, j) = vector(k)
      matriz_imag(j, i) = - matriz_imag(i, j)
@@ -104,14 +95,15 @@ do j = 1, rho_size
    enddo
 enddo
 
-forall(i = 1:rho_size) matriz_imag(i, i) = 0.d0 
-!---------------------------
+forall(i = 1:dim_el) matriz_imag(i, i) = 0.d0 
+!=======================================
 
 rho_matrix = matriz_real + zi * matriz_imag
 
 
-do j = 1, rho_size
-  do i = 1, rho_size
+!======= VERIFICA SE RHO ESTÁ HERMITIANO ======
+do j = 1, dim_el
+  do i = 1, dim_el
     if (i > j) then
         if ( matriz_real(i, j) /= matriz_real(j, i) ) then
                print*, "RHO NÃO ESTÁ HERMITIANO - PARTE REAL DIFERENTE"
@@ -122,7 +114,7 @@ do j = 1, rho_size
     endif
   enddo
 enddo 
-
+!==============================================
 
 return
 end subroutine monta_rho
@@ -134,26 +126,25 @@ end subroutine monta_rho
 ! COMO: (EX 3X3):       y(3) = rho_real(3, 3),  y(6) = rho_real(3, 2), y(9) = rho_imag(3, 2)
 
 
-subroutine monta_y(rho_size, rho_matrix, vector)
+subroutine monta_y(rho_matrix, vector)
 implicit none
-integer, intent(in) :: rho_size
-complex*16, intent(in) :: rho_matrix(rho_size, rho_size)
-real*8, intent(out) :: vector(rho_size * rho_size)
+complex*16, intent(in) :: rho_matrix(dim_el, dim_el)
+real*8, intent(out) :: vector(dim_el * dim_el)
 
 integer :: ndim  !numero de eq. pra resolver na matriz rho_real
-real*8 :: matriz_real(rho_size, rho_size), matriz_imag(rho_size, rho_size)
+real*8 :: matriz_real(dim_el, dim_el), matriz_imag(dim_el, dim_el)
 
 
-ndim = ((rho_size*(rho_size + 1)) / 2) !numero de eq. pra resolver na matriz rho_real
+ndim = ((dim_el*(dim_el + 1)) / 2) !numero de eq. pra resolver na matriz rho_real
 
 !--- PARTE DIAGONAL REAL ---
-forall(k=1:rho_size) vector(k) = real(rho_matrix(k, k))
+forall(k=1:dim_el) vector(k) = real(rho_matrix(k, k))
 !---------------------
 
 !--- PARTE NÃO DIAGONAL REAL ---
-k = rho_size + 1
-do j = 1, rho_size
-  do i = 1, rho_size
+k = dim_el + 1
+do j = 1, dim_el
+  do i = 1, dim_el
     if (i > j) then
      vector(k) = real(rho_matrix(i, j))
      k = k + 1
@@ -164,8 +155,8 @@ enddo
 
 !--- PARTE NÃO DIAGONAL IMAGINÁRIA ---
 k = ndim + 1
-do j = 1, rho_size
-   do i = 1, rho_size
+do j = 1, dim_el
+   do i = 1, dim_el
     if (i > j) then
      vector(k) = aimag(rho_matrix(i, j))
      k = k + 1
@@ -178,13 +169,12 @@ return
 
 end subroutine monta_y
 
-subroutine rho_matrix_to_pop(nstates, rho_size, rho_matrix, pop_matrix)
+subroutine rho_matrix_to_pop(rho_matrix, pop_matrix)
 !subroutina que devolvolve a populacao do  sitio, ou seja
 !matriz_pop(3, 1) = real(rho(3, 3)), matriz_pop(nrows, ncolumns) = real(rho(nm_rows*nm_columns, nm_rows*nm_columns))
 
 implicit none
-integer, intent(in) :: nstates, rho_size
-complex*16, intent(in) :: rho_matrix(rho_size, rho_size)
+complex*16, intent(in) :: rho_matrix(dim_el, dim_el)
 real*8, intent(out) :: pop_matrix(nm_rows, nm_columns)
 
 REAL*8 :: soma_temp
@@ -195,7 +185,7 @@ soma_temp = 0.d0
 k = 1
 do j = 1, nm_columns !-1 !vetor coluna que vai pegar os elementos da diagional principal do rho
   do i = 1, nm_rows
-    do l = 1, nstates
+    do l = 1, nmstates_el
       soma_temp = soma_temp + real(rho_matrix(k, k))
       k = k + 1
     enddo
@@ -207,19 +197,18 @@ enddo
 return
 end subroutine rho_matrix_to_pop
 
-subroutine rhosite_TO_rhoham(rhosize, EGvectors, transpose_EGvectors, rhosite, rhoham)
+subroutine rhosite_TO_rhoham(EGvectors, transpose_EGvectors, rhosite, rhoham)
 implicit none
-INTEGER, INTENT(IN) :: rhosize
-REAL*8, DIMENSION(rhosize, rhosize), INTENT(IN) :: EGvectors, transpose_EGvectors
-COMPLEX*16, DIMENSION(rhosize, rhosize), INTENT(IN) :: rhosite
-COMPLEX*16, DIMENSION(rhosize, rhosize), INTENT(OUT) :: rhoham
+REAL*8, DIMENSION(dim_el, dim_el), INTENT(IN) :: EGvectors, transpose_EGvectors
+COMPLEX*16, DIMENSION(dim_el, dim_el), INTENT(IN) :: rhosite
+COMPLEX*16, DIMENSION(dim_el, dim_el), INTENT(OUT) :: rhoham
 complex*16, dimension(:, :), allocatable :: temporaria
 
 complex*16, dimension(:, :), allocatable :: tempEGvectors, temptranspose_EGvectors
 
-allocate(temporaria(rhosize, rhosize), source = (0.d0, 0.d0) )
-allocate(tempEGvectors(rhosize, rhosize), source = (0.d0, 0.d0) ) 
-allocate(temptranspose_EGvectors(rhosize, rhosize), source = (0.d0, 0.d0) ) 
+allocate(temporaria(dim_el, dim_el), source = (0.d0, 0.d0) )
+allocate(tempEGvectors(dim_el, dim_el), source = (0.d0, 0.d0) ) 
+allocate(temptranspose_EGvectors(dim_el, dim_el), source = (0.d0, 0.d0) ) 
 
 tempEGvectors = EGvectors + zi * 0.d0
 temptranspose_EGvectors = transpose_EGvectors + zi * 0.d0
@@ -228,29 +217,25 @@ temptranspose_EGvectors = transpose_EGvectors + zi * 0.d0
 call gemm(temptranspose_EGvectors, rhosite, temporaria)
 call gemm(temporaria, tempEGvectors, rhoham) 
 
-!temporaria = matmul(transpose_EGvectors, rhosite)
-!rhoham = matmul(temporaria, EGvectors)
-
 
 deallocate(temporaria, tempEGvectors, temptranspose_EGvectors) 
 return
 end subroutine rhosite_TO_rhoham
 
 
-subroutine rhoham_TO_rhosite(rhosize, EGvectors, transpose_EGvectors, rhoham, rhosite)
+subroutine rhoham_TO_rhosite(EGvectors, transpose_EGvectors, rhoham, rhosite)
 implicit none
-INTEGER, INTENT(IN) :: rhosize
-REAL*8, DIMENSION(rhosize, rhosize), INTENT(IN) :: EGvectors, transpose_EGvectors
-COMPLEX*16, DIMENSION(rhosize, rhosize), INTENT(in) :: rhoham
-COMPLEX*16, DIMENSION(rhosize, rhosize), INTENT(OUT) :: rhosite
+REAL*8, DIMENSION(dim_el, dim_el), INTENT(IN) :: EGvectors, transpose_EGvectors
+COMPLEX*16, DIMENSION(dim_el, dim_el), INTENT(in) :: rhoham
+COMPLEX*16, DIMENSION(dim_el, dim_el), INTENT(OUT) :: rhosite
 complex*16, dimension(:, :), allocatable :: temporaria
 
 complex*16, dimension(:, :), allocatable :: tempEGvectors, temptranspose_EGvectors
 
 
-allocate(temporaria(rhosize, rhosize), source = (0.d0, 0.d0) )
-allocate(tempEGvectors(rhosize, rhosize), source = (0.d0, 0.d0) ) 
-allocate(temptranspose_EGvectors(rhosize, rhosize), source = (0.d0, 0.d0) ) 
+allocate(temporaria(dim_el, dim_el), source = (0.d0, 0.d0) )
+allocate(tempEGvectors(dim_el, dim_el), source = (0.d0, 0.d0) ) 
+allocate(temptranspose_EGvectors(dim_el, dim_el), source = (0.d0, 0.d0) ) 
 
 
 tempEGvectors = EGvectors + zi * 0.d0
@@ -261,10 +246,6 @@ temptranspose_EGvectors = transpose_EGvectors + zi * 0.d0
 call gemm(tempEGvectors, rhoham, temporaria)
 call gemm(temporaria, temptranspose_EGvectors, rhosite) 
 
-!temporaria = matmul(EGvectors, rhoham)
-!rhosite = matmul(temporaria, transpose_EGvectors)
-
-
 
 deallocate(temporaria, tempEGvectors, temptranspose_EGvectors) 
 return
@@ -273,29 +254,27 @@ end subroutine rhoham_TO_rhosite
 
 
 
-subroutine printa_resultado(nstates, rho_size, nm_arquivo, t, rho_matrix)
+subroutine printa_resultado(nm_arquivo, t, rho_matrix)
 !SUBROUTINE PARA ESCREVER OS RESULTADOS DO RHO SOMANDO OS ESTADOS PARA CADA SITIO
 !OU SEJA, PARA NSTATES = 3, PROB DE ENCONTRARMOS O ELETRON NO SITIO 1 = RHO(1,1)+RHO(2,2)+RHO(3,3)
 
 implicit none
-integer, intent(in) :: nstates, rho_size, nm_arquivo
+integer, intent(in) :: nm_arquivo
 real*8, intent(in) :: t
-complex*16, intent(in) :: rho_matrix(rho_size, rho_size)
+complex*16, intent(in) :: rho_matrix(dim_el, dim_el)
 
 !real*8 :: matriz_temporaria(dimensao-1)
 real*8, DIMENSION(:), ALLOCATABLE :: matriz_temporaria
 real*8 :: temp_soma
-character (len=90) :: filename
 integer :: verificador, counter
 
-ALLOCATE(matriz_temporaria(nqdots), source = 0.d0) !matriz  temporaria guarda as populacoes de cada sitio
+ALLOCATE(matriz_temporaria(nsites), source = 0.d0) !matriz  temporaria guarda as populacoes de cada sitio
 
-write(filename, "(A5, I2)") "fort.",nm_arquivo
 
 counter = 1
 temp_soma = 0.d0
 do  i = 1, nsites  !-1 !vetor coluna que vai pegar os elementos da diagional principal do rho
-  do j = 1, nstates
+  do j = 1, nmstates_el
     temp_soma = real(rho_matrix(counter, counter)) + temp_soma
     counter = counter + 1
   enddo
@@ -308,23 +287,50 @@ do  i = 1, nsites  !-1 !vetor coluna que vai pegar os elementos da diagional pri
   temp_soma = 0.d0
 enddo
 
-!if ( nsites /= 0.d0 ) then 
-!matriz_temporaria(nqdots) = real(rho_matrix(rho_size, rho_size))
-!endif 
 
-open(nm_arquivo, file = filename, position = 'append')
 
-!sem estado de recomb
 write ( nm_arquivo,  '(60F12.5)', advance='no' ) t
-write ( nm_arquivo,  '(60F12.5)', advance = 'no') (  (matriz_temporaria(i)),  i = 1, nqdots )
+write ( nm_arquivo,  '(60F12.5)', advance = 'no') (  (matriz_temporaria(i)),  i = 1, nsites )
 write ( nm_arquivo, '(60F12.5)' ) sum(matriz_temporaria(:)) 
 
-close(nm_arquivo)
 
 return
 DEALLOCATE(matriz_temporaria)
 end subroutine printa_resultado
 
+
+subroutine open_write_files
+implicit none
+
+open(15, file = 'popSiteBasis', status = 'replace')  !eletron base local
+open(14, file = 'popNonSiteBasis', status = 'replace')  !eletron base desloc.
+open(100, file = 'radius', status = 'replace')
+open(101, file = 'forces', status = 'replace')
+open(103, file = 'energiatotal', status = 'replace')
+open(84, file = 'energiacinetica', status = 'replace')
+open(85, file = 'energiapotencial', status = 'replace')
+open(86, file = 'energiazero', status = 'replace')
+open(87, file = 'energiael', status = 'replace')
+
+
+return
+end subroutine open_write_files
+
+subroutine close_write_files
+implicit none
+
+close(14)
+close(15)
+close(100)
+close(101)
+close(103)
+close(84)
+close(85) 
+close(86)
+close(87)
+
+return
+end subroutine close_write_files
 
 
 
@@ -372,25 +378,25 @@ END SUBROUTINE C_PR_PT_A
 !------------------------------------------------------------------------------
 
 !funcao para calcular a derivada de um vetor
-subroutine fderiv(dims, x_vector, y_vector, deriv)
+subroutine fderiv(dim_el, x_vector, y_vector, deriv)
 implicit none
-integer, intent(in) :: dims
-real*8, dimension(dims), intent(in) :: x_vector, y_vector
-real*8, dimension(dims), intent(out) :: deriv
+integer, intent(in) :: dim_el
+real*8, dimension(dim_el), intent(in) :: x_vector, y_vector
+real*8, dimension(dim_el), intent(out) :: deriv
 integer :: i, j
-real*8, dimension(dims-1) :: delx
+real*8, dimension(dim_el-1) :: delx
 
 delx = 0.d0
 deriv = 0.d0
 
 
-do i = 2, dims-1
+do i = 2, dim_el-1
    delx(i) =  x_vector(i) - x_vector(i-1)
    deriv(i) = (y_vector(i+1) - y_vector(i-1)) / (2.d0 * delx(i) )
 enddo
 
 deriv(1) = deriv(2)
-deriv(dims) = deriv(dims-1)
+deriv(dim_el) = deriv(dim_el-1)
 
 
 return

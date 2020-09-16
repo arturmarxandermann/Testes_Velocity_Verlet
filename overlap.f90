@@ -23,57 +23,23 @@ allocate(sites_array(nm_rows, nm_columns))
 
 do j = 1, nm_columns
   do i = 1, nm_rows
-    if ( j < donnor_layer_b .OR. j > acceptor_layer_e ) then
       sites_array(i, j)%t = siteCoupling
-    else
-      sites_array(i, j)%t = siteCoupling
-    endif 
   enddo
 enddo
-
-
-do j = 1, nm_columns
-  do i = 1, nm_rows
-    if (j < donnor_layer_b) then
-      sites_array(i, j)%Egap = 0.d0 !2.2d0   
-    else if (j > anode_layer_e .AND. j <= donnor_layer_e) then
-      sites_array(i, j)%Egap = 2.0d0 !!2.0d0
-    else if (j > donnor_layer_e .AND. j <= acceptor_layer_e) then
-      sites_array(i, j)%Egap = 2.5d0 !2.5d0
-    else
-      sites_array(i, j)%Egap = 2.1d0 !2.1d0
-    endif
-  enddo
-enddo
-
 
   
 
 do j = 1, nm_columns
   do i = 1, nm_rows
-    if (j < donnor_layer_b) then
       sites_array(i, j)%homo_energy = 0.d0 
-      sites_array(i, j)%lumo_energy = 0.0d0 !- EF*float(j)
-    else if (j > anode_layer_e .AND. j <= donnor_layer_e) then
-      sites_array(i, j)%homo_energy = 0.3d0 !- EF*float(j)
-      sites_array(i, j)%lumo_energy = 1.5d0 !- EF*float(j) 
-    else if (j > donnor_layer_e .AND. j <= acceptor_layer_e) then
-      sites_array(i, j)%homo_energy = 1.8d0 !- EF* float(j)
-      sites_array(i, j)%lumo_energy = 0.5d0 !- EF*float(j)
-    else
-      sites_array(i, j)%homo_energy = 1.9d0 !- EF*float(j)
-      sites_array(i, j)%lumo_energy = 0.d0
-    endif
-
-    print*, i, j, sites_array(i, j)%lumo_energy-4.5d0, -sites_array(i, j)%homo_energy-4.7d0  !!4.7d0
-
+      sites_array(i, j)%lumo_energy = 0.d0 
   enddo
 enddo
 
 !SITE RADIUS EM NANOMETROS
 do j = 1, nm_columns
   do i = 1, nm_rows
-      sites_array(i, j)%mass = siteMass  !-26 !se aumento a massa aumento/diminuo a força da mola/eletrica
+      sites_array(i, j)%mass = siteMass  
       sites_array(i, j)%radiuszero = raioZero
       sites_array(i, j)%radius = sites_array(i, j)%radiuszero
       sites_array(i, j)%radial_vel = 0.d0 
@@ -91,22 +57,9 @@ enddo
 
 do j = 1, nm_columns
   do i = 1, nm_rows
-    sites_array(i, j)%site_type_el = (sites_array(i, j)%lumo_energy) !-  HB_ev_ps * sites_array(i, j)%omega)
-    sites_array(i, j)%site_type_hl = (sites_array(i, j)%homo_energy) !-  HB_ev_ps * sites_array(i, j)%omega)
+    sites_array(i, j)%site_type_el = (sites_array(i, j)%lumo_energy) 
   enddo
 enddo
-
-
-
-
-
-do j = 1, nm_columns
-  do i = 1, nm_rows
-   sites_array(i, j)%hamiltonian_energy_homo = HB_ev_ps * sites_array(i, j)%omega + sites_array(i, j)%site_type_hl
-    sites_array(i, j)%hamiltonian_energy_lumo = HB_ev_ps * sites_array(i, j)%omega + sites_array(i, j)%site_type_el
-  end do
-end do
-
 
 
 
@@ -117,86 +70,11 @@ do j = 1, nm_columns
     if (i == 1 .AND. j == 1) then
       sites_array(i, j)%posicao_x = 0.d0
       sites_array(i, j)%posicao_y = 0.d0
-    endif
-    !SITIOS LOCALIZADOS NA PRIMEIRA COLUNA COM X=0
-    if  (i > 1 .AND. j == 1) then
-      sites_array(i, j)%posicao_x = 0.d0
-      sites_array(i, j)%posicao_y = sites_array(i-1 , j)%posicao_y + sites_array(i-1, j)%radius + sites_array(i, j)%radius + distance_molecule
-    endif
-    !!SITIOS LOCALIZADOS NA PRIMEIRA LINHA COM Y=0
-    !!if (i == 1 .AND. j > 1) then 
-      !!sites_array(i, j)%posicao_x = sites_array(i , j-1)%posicao_x +
-      !sites_array(i, j-1)%radius + sites_array(i, j)%radius + distance_molecule
-      !!sites_array(i, j)%posicao_y = 0.d0 
-    !!endif 
 
-    !SITIOS LOCALIZADOS NA PRIMEIRA LINHA COM Y=0
-    if (i == 1 .AND. j > 1) then
-
-      !DISTANCIA ENTRE ELETRODOS
-      if (j < donnor_layer_b .OR. j > cathode_layer_b ) then
-         sites_array(i, j)%posicao_x = sites_array(i , j-1)%posicao_x + sites_array(i, j-1)%radius &
-            + sites_array(i, j)%radius + distance_eletrodes 
-         sites_array(i, j)%posicao_y = 0.d0
-
-      endif
-
-
-      !SITIOS QUE NÃO ESTÃO NA COLUNA DIFERENTE DA HETEROJUNCAO
-      if (j /= acceptor_layer_b .AND. j > donnor_layer_b .AND. j < cathode_layer_b) then
-   sites_array(i, j)%posicao_x = sites_array(i , j-1)%posicao_x + sites_array(i, j-1)%radius + sites_array(i, j)%radius + distance_molecule 
-
-     sites_array(i, j)%posicao_y = 0.d0
-      endif
-     
-      !SITIOS AO LADO DO ELETRODO
-      if (j == donnor_layer_b .OR. j == cathode_layer_b) then
-        sites_array(i, j)%posicao_x = sites_array(i , j-1)%posicao_x + sites_array(i, j-1)%radius + sites_array(i, j)%radius + &
-                                       distance_eletrodes_sites
-
-        sites_array(i, j)%posicao_y = 0.d0
-
-      endif 
-
-      !SITIOS QUE ESTÃO NA HETEROJUNCAO
-      if (j == acceptor_layer_b) then
-        sites_array(i, j)%posicao_x = sites_array(i , j-1)%posicao_x + sites_array(i, j-1)%radius + sites_array(i, j)%radius + distance_layer
-        sites_array(i, j)%posicao_y = 0.d0
-      endif
-
-      
-    endif
-
-  enddo
-enddo
-
-!sitios que estao no centro da celula
-do j = 1, nm_columns
-  do i = 1, nm_rows
-    if (i > 1 .AND. j > 1) then
-      if (j < acceptor_layer_b .OR. j > cathode_layer_b) then
-        sites_array(i, j)%posicao_x = sites_array(i , j-1)%posicao_x + sites_array(i, j-1)%radius + sites_array(i, j)%radius &
-        + distance_eletrodes
-        sites_array(i, j)%posicao_y = sites_array(i-1 , j)%posicao_y + sites_array(i-1, j)%radius + sites_array(i, j)%radius & 
+    else
+      sites_array(i, j)%posicao_x = sites_array(i , j-1)%posicao_x + sites_array(i, j-1)%radius + sites_array(i, j)%radius &
         + distance_molecule
-      endif  
-
-      if (j /= acceptor_layer_b .AND. j > acceptor_layer_b .AND. j < cathode_layer_b  ) then
-   sites_array(i, j)%posicao_x = sites_array(i , j-1)%posicao_x + sites_array(i, j-1)%radius + sites_array(i, j)%radius + distance_molecule
-   sites_array(i, j)%posicao_y = sites_array(i-1 , j)%posicao_y + sites_array(i-1, j)%radius + sites_array(i, j)%radius + distance_molecule
-      endif
-      if (j == acceptor_layer_b) then
-  sites_array(i, j)%posicao_x = sites_array(i , j-1)%posicao_x + sites_array(i, j-1)%radius + sites_array(i, j)%radius + distance_layer
-        !sites_array(i, j)%posicao_y = 0.d0
-  sites_array(i, j)%posicao_y = sites_array(i-1 , j)%posicao_y + sites_array(i-1, j)%radius + sites_array(i, j)%radius + distance_molecule
-     endif
-
-     if (j == donnor_layer_b .OR. j == cathode_layer_b) then
-        sites_array(i, j)%posicao_x = sites_array(i , j-1)%posicao_x + sites_array(i, j-1)%radius + sites_array(i, j)%radius &
-        + distance_eletrodes_sites
-        sites_array(i, j)%posicao_y = sites_array(i-1 , j)%posicao_y + sites_array(i-1, j)%radius + sites_array(i, j)%radius &
-        + distance_molecule
-     endif 
+      sites_array(i, j)%posicao_y = 0.d0
 
     endif
   enddo
@@ -204,33 +82,8 @@ enddo
 
 
 
-
-
-
-
-
-
-
-
-open(50, file = 'el_sites_energy', status = 'replace') 
-open(51, file = 'hl_sites_energy', status = 'replace') 
-do j = 1, nm_columns
-   do i = 1, nm_rows
-   write(50, *) sites_array(i, j)%posicao_x * 1.d+9, sites_array(i, j)%lumo_energy, &
-sites_array(i, j)%lumo_energy + HB_ev_ps * sites_array(i, j)%omega
-
-   write(51, *) sites_array(i, j)%posicao_x * 1.d+9, sites_array(i, j)%homo_energy, &
-sites_array(i, j)%homo_energy + HB_ev_ps * sites_array(i, j)%omega
-
-   enddo
-enddo
-close(50)
-close(51)
-
-
 do j = 1, nm_columns
   do i = 1, nm_rows
-!print*, "posicao x molecula", i, j, sites_array(i, j)%posicao_x
 print*, "tamanho molecula", i, j, "em nm é", 2.d0 * sites_array(i, j)%radius * 1.d9
   enddo
 enddo
@@ -247,11 +100,6 @@ print*, "V type da molecula el", i, j, "em ev é",  sites_array(i, j)%site_type_
   enddo
 enddo
 
-do j = 1, nm_columns
-  do i = 1, nm_rows
-print*, "V type da molecula hl", i, j, "em ev é",  sites_array(i, j)%site_type_hl
-  enddo
-enddo
 
 do j = 1, nm_columns
   do i = 1, nm_rows
@@ -260,12 +108,7 @@ print*, "HBAR * omega da molecula:", i, j, "em ev é",  HB_ev_ps*sites_array(i, 
 enddo
 
 
-print*, "temperatura utilizada:", temp
-print*, "taxa dephasing utilizada:", v_dephasing_el
 print*, "distancia entre os sitios utilizada:", distance_molecule
-print*, "distancia da heterojuncao:", distance_layer
-print*, "distancia dos eletrodos:", distance_eletrodes_sites
-print*, "distancia entre eletrodos:", distance_eletrodes
 
 
 return

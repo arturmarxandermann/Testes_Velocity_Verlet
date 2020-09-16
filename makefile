@@ -30,11 +30,8 @@ SOURCE = types.o\
 	 overlap.o\
 	 system_hamiltonian.o\
 	 verlet.o\
-	 system_operators.o\
 	 rdftensor.o\
          ode.o\
-	 gnugraphs.o\
-	 plot_auto_function.o\
 	 test.o\
    	 main.o\
 

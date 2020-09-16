@@ -1,7 +1,6 @@
 module types_m
 
 type quantum_site
-    real*8 :: Egap
     real*8 :: t
     real*8 :: homo_energy
     real*8 :: lumo_energy
@@ -10,9 +9,6 @@ type quantum_site
     real*8 :: radial_vel 
     real*8 :: mass
     real*8 :: site_type_el
-    real*8 :: site_type_hl
-    real*8 :: hamiltonian_energy_homo
-    real*8 :: hamiltonian_energy_lumo
     real*8 :: omega
     real*8 :: omegazero
     real*8 :: posicao_x
