@@ -1,2 +1,2 @@
-# Testes_Velocity_Verlet
+# VelocityVerletCoherent
 Programa principal para dinâmica utilizando Velocity Verlet.
