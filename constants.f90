@@ -11,9 +11,7 @@ use types_m
     real*8, parameter :: vel_luz = 3.d10 !esta em cm/s
     real*8, parameter :: PI = 3.14159265359d0
     
-    
     !============   ==================
-    
     
     real*8, parameter  :: half = 0.5d0, zero = 0.0d0, one = 1.0d0, two = 2.0d0, five = 5.0d0, four = 4.0d0, three = 3.0d0, eight = 8.0d0 , six = 6.0d0
     
@@ -44,8 +42,6 @@ use types_m
     integer :: grid_size, i, m, j, l, k, n, r, c, alpha, beta, gama, delta, lambda, mu, kappa, sn
     
     REAL*8 , PARAMETER :: R_ZERO = 0.d0
-    !REAL*8 , PARAMETER :: HALF = 5.d-1
-    
     
     REAL*8 , PARAMETER :: R_ONE = 1.d0
     REAL*8 , PARAMETER :: R_TWO = 2.d0

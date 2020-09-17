@@ -8,11 +8,11 @@ type quantum_site
     real*8 :: radiuszero
     real*8 :: radial_vel 
     real*8 :: mass
-    real*8 :: site_type_el
+    real*8 :: V0
     real*8 :: omega
     real*8 :: omegazero
-    real*8 :: posicao_x
-    real*8 :: posicao_y
+    real*8 :: _x
+    real*8 :: _y
 end type quantum_site
 
 type operators

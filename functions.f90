@@ -18,27 +18,27 @@ subroutine print_matrices(step, rho_sites_in, phi, hamiltoniana)
     
     !args
     integer,    intent(in) :: step
-    complex*16, intent(in) :: rho_sites_in(dim_el,dim_el)
-    real*8,     intent(in) :: phi(dim_el, dim_el), hamiltoniana(dim_el,dim_el)
+    complex*16, intent(in) :: rho_sites_in(d_el,d_el)
+    real*8,     intent(in) :: phi(d_el, d_el), hamiltoniana(d_el,d_el)
 
     !local
 	real*8, allocatable    :: rhomtx(:,:)
 
-    allocate(rhomtx(dim_el,dim_el), source = 0.d0 ) 
+    allocate(rhomtx(d_el,d_el), source = 0.d0 ) 
     
     if ( step == 1 .OR. step == nm_divisoes/2 .OR. step == nm_divisoes ) then
       rhomtx = 0.d0
       rhomtx = real(rho_sites_in)
       print*, "PARTE REAL COMECO DO PROGRAMA"
-      call print_mat2(rhomtx, dim_el, dim_el)
+      call print_mat2(rhomtx, d_el, d_el)
       rhomtx = 0.d0
       rhomtx = aimag(rho_sites_in)
       print*, "PARTE IMAGINARIA COMECO DO PROGRAMA"
-      call print_mat2(rhomtx, dim_el, dim_el)
+      call print_mat2(rhomtx, d_el, d_el)
       print*, "autovetores"
-      call print_mat2(phi, dim_el, dim_el)
+      call print_mat2(phi, d_el, d_el)
       print*, "hamiltoniano"
-      call print_mat2(hamiltoniana, dim_el, dim_el)
+      call print_mat2(hamiltoniana, d_el, d_el)
     endif
 
 
@@ -53,30 +53,30 @@ subroutine monta_rho(vector, rho_matrix)
       !                           (y(5) y(6) y(3))     (y(8) y(9)  0   )
     
     !args
-    real*8,     intent(in)  :: vector(dim_el*dim_el)
-    complex*16, intent(out) :: rho_matrix(dim_el,dim_el)
+    real*8,     intent(in)  :: vector(d_el*d_el)
+    complex*16, intent(out) :: rho_matrix(d_el,d_el)
 
     !local 
-    real*8                  :: matriz_real(dim_el,dim_el), matriz_imag(dim_el,dim_el)
+    real*8                  :: matriz_real(d_el,d_el), matriz_imag(d_el,d_el)
     integer                 :: ndim  !numero de eq. pra resolver na matriz rho_real
     
     
     rho_matrix = 0.d0 + zi * 0.d0
-    ndim = ((dim_el*(dim_el + 1)) / 2) !numero de eq. pra resolver na matriz rho_real
+    ndim = ((d_el*(d_el + 1)) / 2) !numero de eq. pra resolver na matriz rho_real
     matriz_real = 0.d0 
     matriz_imag = 0.d0
     
     
     !=== PARTE DIAGONAL REAL ======
-    do i = 1, dim_el
+    do i = 1, d_el
       matriz_real(i, i) = vector(i)
     enddo
     !===============================
     
     !=== PARTE NÃO DIAGONAL REAL ===
-    k = dim_el + 1
-    do j = 1, dim_el
-      do i = 1, dim_el
+    k = d_el + 1
+    do j = 1, d_el
+      do i = 1, d_el
         if (i > j) then
           matriz_real(i, j) = vector(k)
           matriz_real(j, i) = matriz_real(i, j)
@@ -88,8 +88,8 @@ subroutine monta_rho(vector, rho_matrix)
     
     !==== PARTE NÃO DIAGONAL IMAGINÁRIA =====
     k = ndim + 1
-    do j = 1, dim_el
-      do i = 1, dim_el
+    do j = 1, d_el
+      do i = 1, d_el
         if (i > j) then
           matriz_imag(i, j) = vector(k)
           matriz_imag(j, i) = - matriz_imag(i, j)
@@ -98,15 +98,15 @@ subroutine monta_rho(vector, rho_matrix)
       enddo
     enddo
     
-    forall(i = 1:dim_el) matriz_imag(i, i) = 0.d0 
+    forall(i = 1:d_el) matriz_imag(i, i) = 0.d0 
     !=======================================
     
     rho_matrix = matriz_real + zi * matriz_imag
     
     
     !======= VERIFICA SE RHO ESTÁ HERMITIANO ======
-    do j = 1, dim_el
-      do i = 1, dim_el
+    do j = 1, d_el
+      do i = 1, d_el
         if (i > j) then
           if ( matriz_real(i, j) /= matriz_real(j, i) ) then
             print*, "RHO NÃO ESTÁ HERMITIANO - PARTE REAL DIFERENTE"
@@ -132,26 +132,26 @@ subroutine monta_y(rho_matrix, vector)
     implicit none
 
     !args
-    complex*16, intent(in)  :: rho_matrix(dim_el, dim_el)
-    real*8,     intent(out) :: vector(dim_el*dim_el)
+    complex*16, intent(in)  :: rho_matrix(d_el, d_el)
+    real*8,     intent(out) :: vector(d_el*d_el)
     
     !local
     integer :: ndim  !numero de eq. pra resolver na matriz rho_real
-    real*8  :: matriz_real(dim_el,dim_el), matriz_imag(dim_el, dim_el)
+    real*8  :: matriz_real(d_el,d_el), matriz_imag(d_el, d_el)
     
     
 
-    ndim = ((dim_el*(dim_el + 1)) / 2) !numero de eq. pra resolver na matriz rho_real
+    ndim = ((d_el*(d_el + 1)) / 2) !numero de eq. pra resolver na matriz rho_real
 
     
     !--- PARTE DIAGONAL REAL ---
-    forall(k=1:dim_el) vector(k) = real(rho_matrix(k, k))
+    forall(k=1:d_el) vector(k) = real(rho_matrix(k, k))
     !---------------------
     
     !--- PARTE NÃO DIAGONAL REAL ---
-    k = dim_el + 1
-    do j = 1, dim_el
-      do i = 1, dim_el
+    k = d_el + 1
+    do j = 1, d_el
+      do i = 1, d_el
         if (i > j) then
           vector(k) = real(rho_matrix(i, j))
           k = k + 1
@@ -162,8 +162,8 @@ subroutine monta_y(rho_matrix, vector)
     
     !--- PARTE NÃO DIAGONAL IMAGINÁRIA ---
     k = ndim + 1
-    do j = 1, dim_el
-      do i = 1, dim_el
+    do j = 1, d_el
+      do i = 1, d_el
         if (i > j) then
           vector(k) = aimag(rho_matrix(i, j))
           k = k + 1
@@ -179,11 +179,11 @@ end subroutine monta_y
 subroutine rho_matrix_to_pop(rho_matrix, pop_matrix)
     implicit none
 !subroutina que devolvolve a populacao do  sitio, ou seja
-!matriz_pop(3, 1) = real(rho(3, 3)), matriz_pop(nrows, ncolumns) = real(rho(nm_rows*nm_columns, nm_rows*nm_columns))
+!matriz_pop(3, 1) = real(rho(3, 3)), matriz_pop(nrows, ncolumns) = real(rho(nr*nc, nr*nc))
 
     !args
-    complex*16, intent(in) :: rho_matrix(dim_el, dim_el)
-    real*8, intent(out)    :: pop_matrix(nm_rows, nm_columns)
+    complex*16, intent(in) :: rho_matrix(d_el, d_el)
+    real*8, intent(out)    :: pop_matrix(nr, nc)
     
     !local
     REAL*8 :: soma_temp
@@ -194,9 +194,9 @@ subroutine rho_matrix_to_pop(rho_matrix, pop_matrix)
 
 
     k = 1
-    do j = 1, nm_columns !-1 !vetor coluna que vai pegar os elementos da diagional principal do rho
-      do i = 1, nm_rows
-        do l = 1, nmstates_el
+    do j = 1, nc !-1 !vetor coluna que vai pegar os elementos da diagional principal do rho
+      do i = 1, nr
+        do l = 1, ns_el
           soma_temp = soma_temp + real(rho_matrix(k, k))
           k = k + 1
         enddo
@@ -212,9 +212,9 @@ subroutine rhosite_TO_rhoham(EGvectors, transpose_EGvectors, rhosite, rhoham)
 
 
     !args
-    REAL*8,       INTENT(IN) :: EGvectors(dim_el, dim_el), transpose_EGvectors(dim_el, dim_el)
-    COMPLEX*16,   INTENT(IN) :: rhosite(dim_el, dim_el)
-    COMPLEX*16,   INTENT(OUT) :: rhoham(dim_el, dim_el)
+    REAL*8,       INTENT(IN) :: EGvectors(d_el, d_el), transpose_EGvectors(d_el, d_el)
+    COMPLEX*16,   INTENT(IN) :: rhosite(d_el, d_el)
+    COMPLEX*16,   INTENT(OUT) :: rhoham(d_el, d_el)
 
 
     !local
@@ -222,9 +222,9 @@ subroutine rhosite_TO_rhoham(EGvectors, transpose_EGvectors, rhosite, rhoham)
     complex*16,    allocatable :: tempEGvectors(:,:), temptranspose_EGvectors(:,:)
     
 
-    allocate(temporaria(dim_el, dim_el),              source = (0.d0, 0.d0) )
-    allocate(tempEGvectors(dim_el, dim_el),           source = (0.d0, 0.d0) ) 
-    allocate(temptranspose_EGvectors(dim_el, dim_el), source = (0.d0, 0.d0) ) 
+    allocate(temporaria(d_el, d_el),              source = (0.d0, 0.d0) )
+    allocate(tempEGvectors(d_el, d_el),           source = (0.d0, 0.d0) ) 
+    allocate(temptranspose_EGvectors(d_el, d_el), source = (0.d0, 0.d0) ) 
     
 
     tempEGvectors = EGvectors + zi * 0.d0
@@ -243,9 +243,9 @@ subroutine rhoham_TO_rhosite(EGvectors, transpose_EGvectors, rhoham, rhosite)
     implicit none
 
     ! args
-    REAL*8,     INTENT(IN) :: EGvectors(dim_el, dim_el), transpose_EGvectors(dim_el, dim_el)
-    COMPLEX*16, INTENT(in) :: rhoham(dim_el, dim_el)
-    COMPLEX*16, INTENT(OUT) :: rhosite(dim_el, dim_el)
+    REAL*8,     INTENT(IN) :: EGvectors(d_el, d_el), transpose_EGvectors(d_el, d_el)
+    COMPLEX*16, INTENT(in) :: rhoham(d_el, d_el)
+    COMPLEX*16, INTENT(OUT) :: rhosite(d_el, d_el)
 
 
     ! local
@@ -254,9 +254,9 @@ subroutine rhoham_TO_rhosite(EGvectors, transpose_EGvectors, rhoham, rhosite)
     complex*16, dimension(:, :), allocatable :: tempEGvectors(:,:), temptranspose_EGvectors(:,:)
     
     
-    allocate(temporaria(dim_el, dim_el),              source = (0.d0, 0.d0) )
-    allocate(tempEGvectors(dim_el, dim_el),           source = (0.d0, 0.d0) ) 
-    allocate(temptranspose_EGvectors(dim_el, dim_el), source = (0.d0, 0.d0) ) 
+    allocate(temporaria(d_el, d_el),              source = (0.d0, 0.d0) )
+    allocate(tempEGvectors(d_el, d_el),           source = (0.d0, 0.d0) ) 
+    allocate(temptranspose_EGvectors(d_el, d_el), source = (0.d0, 0.d0) ) 
     
     
     tempEGvectors = EGvectors + zi * 0.d0
@@ -281,7 +281,7 @@ subroutine printa_resultado(nm_arquivo, t, rho_matrix)
     ! args     
     integer,    intent(in) :: nm_arquivo
     real*8,     intent(in) :: t
-    complex*16, intent(in) :: rho_matrix(dim_el, dim_el)
+    complex*16, intent(in) :: rho_matrix(d_el, d_el)
     
     ! local
     real*8, allocatable    :: matriz_temporaria(:)
@@ -295,7 +295,7 @@ subroutine printa_resultado(nm_arquivo, t, rho_matrix)
     counter = 1
     temp_soma = 0.d0
     do  i = 1, nsites  !-1 !vetor coluna que vai pegar os elementos da diagional principal do rho
-      do j = 1, nmstates_el
+      do j = 1, ns_el
         temp_soma = real(rho_matrix(counter, counter)) + temp_soma
         counter = counter + 1
       enddo
@@ -353,30 +353,30 @@ return
 end subroutine close_write_files
 
 
-subroutine fderiv(dim_el, x_vector, y_vector, deriv)
+subroutine fderiv(d_el, x_vector, y_vector, deriv)
     implicit none
     !funcao para calcular a derivada de um vetor
 
     ! args
-    integer,   intent(in) :: dim_el
-    real*8,    intent(in) :: x_vector(dim_el), y_vector(dim_el)
-    real*8,    intent(out) :: deriv(dim_el)
+    integer,   intent(in) :: d_el
+    real*8,    intent(in) :: x_vector(d_el), y_vector(d_el)
+    real*8,    intent(out) :: deriv(d_el)
 
     ! local 
     integer   :: i, j
-    real*8    :: delx(dim_el-1)
+    real*8    :: delx(d_el-1)
     
     delx = 0.d0
     deriv = 0.d0
     
     
-    do i = 2, dim_el-1
+    do i = 2, d_el-1
       delx(i) =  x_vector(i) - x_vector(i-1)
       deriv(i) = (y_vector(i+1) - y_vector(i-1)) / (2.d0 * delx(i) )
     enddo
     
     deriv(1) = deriv(2)
-    deriv(dim_el) = deriv(dim_el-1)
+    deriv(d_el) = deriv(d_el-1)
 end subroutine fderiv
 
 
@@ -426,9 +426,9 @@ subroutine printaletters2(nomearquivo, nmfile, matrizsize, nmlines, nmcol, matri
     implicit none
 
     ! args 
-    character*6, intent(in) :: nomearquivo
-    integer,     intent(in) :: nmfile, matrizsize, nmlines, nmcol
-    real*8,      intent(in) :: matriz(matrizsize, matrizsize)
+    character(len=6), intent(in) :: nomearquivo
+    integer,          intent(in) :: nmfile, matrizsize, nmlines, nmcol
+    real*8,           intent(in) :: matriz(matrizsize, matrizsize)
     
     
     open(file = nomearquivo, status = "replace", unit = nmfile)

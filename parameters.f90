@@ -7,12 +7,12 @@ use constants_m
     real*8,  parameter :: tmin = 0.d0  !tempo inicial
     real*8,  parameter :: tmax = 1.2d0  !tempo final
     integer, parameter :: nsites = 2  !numero de sítios que entram na simulacao
-    integer, parameter :: nmstates_el = 3 !numero de estados para o eletron
-    integer, parameter :: dim_el = (nsites*nmstates_el)
-    integer, parameter :: nm_rows = 1 !numero de linhas para os sitios
-    integer, parameter :: nm_columns = 2 !numero de colunas para os sitios
+    integer, parameter :: ns_el = 3 !numero de estados para o eletron
+    integer, parameter :: d_el = (nsites*ns_el)
+    integer, parameter :: nr = 1 !numero de linhas para os sitios
+    integer, parameter :: nc = 2 !numero de colunas para os sitios
     real*8,  parameter :: distance_molecule = 0.25d-9  !distancia entre os sitios
-    integer, parameter :: neqn_el = dim_el * dim_el !numero de equacoes diferenciais acopladas
+    integer, parameter :: neqn_el = d_el * d_el !numero de equacoes diferenciais acopladas
     integer, parameter :: nm_divisoes = 3000 !numero de passos utilizado no programa
     integer, parameter :: initState = 1
     real*8,  parameter :: siteMass = 1.d-27 !massa dos sitios
@@ -25,15 +25,12 @@ use constants_m
     
     real*8,  parameter :: me = effectiveMassMult * electronMass !massa efetiva do eletron
     real*8                          :: energiazeroel
-    real*8                          :: delta_t
+    real*8                          :: dt
     integer                         :: neqn
     complex*16,         allocatable :: rho_ham_in(:,:)
     real*8,             allocatable :: frequency_matrix(:,:)
     real*8,             allocatable :: hamiltoniano(:,:), RWMatrix(:,:) 
-    type(quantum_site), allocatable :: sites_array(:,:)
-
-
-!integer, parameter :: ndim = ((dimensao*(dimensao + 1)) / 2) !numero de eq. pra resolver na matriz rho_real
+    type(quantum_site), allocatable :: site(:,:)
 
 
 end module parameters_m

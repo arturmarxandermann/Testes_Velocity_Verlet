@@ -14,20 +14,20 @@ subroutine particle_energy(hamiltoniano, rho, ParticleEnergy)
     implicit none
 
     ! args
-    real*8,     intent(in) :: hamiltoniano(dim_el, dim_el)
-    complex*16, intent(in) :: rho(dim_el, dim_el)
+    real*8,     intent(in) :: hamiltoniano(d_el, d_el)
+    complex*16, intent(in) :: rho(d_el, d_el)
     real*8,     intent(out):: ParticleEnergy
    
     ! local  
     integer :: i 
     complex*16, allocatable :: energymtx(:,:)
 
-    allocate(energymtx(dim_el, dim_el), source = (0.d0, 0.d0) ) 
+    allocate(energymtx(d_el, d_el), source = (0.d0, 0.d0) ) 
     
     call gemm(hamiltoniano, rho, energymtx)
     
     ParticleEnergy = 0.d0
-    do i = 1, dim_el
+    do i = 1, d_el
        ParticleEnergy = ParticleEnergy + real(energymtx(i, i))
     enddo
     
@@ -40,17 +40,17 @@ subroutine kinect_energy(RadialVel, KinectEnergy)
     implicit none
 
     ! args
-    real*8, intent(in)  :: RadialVel(nm_rows, nm_columns)
+    real*8, intent(in)  :: RadialVel(nr, nc)
     real*8, intent(out) :: KinectEnergy
 
     ! local
     real*8,  allocatable :: kinect_energy_sites(:,:)
     
-    allocate(kinect_energy_sites(nm_rows, nm_columns), source = 0.d0)
+    allocate(kinect_energy_sites(nr, nc), source = 0.d0)
 
-    do j = 1, nm_columns
-       do i = 1, nm_rows
-          kinect_energy_sites(i, j) = HALF * sites_array(i, j)%mass * RadialVel(i, j)**2.0
+    do j = 1, nc
+       do i = 1, nr
+          kinect_energy_sites(i, j) = HALF * site(i, j)%mass * RadialVel(i, j)**2.0
        enddo
     enddo
     
@@ -64,18 +64,18 @@ subroutine spring_energy(Radius, SpringEnergy)
     implicit none
 
     ! args
-    real*8, intent(in)  :: Radius(nm_rows, nm_columns)
+    real*8, intent(in)  :: Radius(nr, nc)
     real*8, intent(out) :: SpringEnergy
     
     ! local  
     real*8, dimension(:, :), allocatable :: spring_energy_sites
     
-    ALLOCATE( spring_energy_sites(nm_rows, nm_columns), source = 0.d0 ) 
+    ALLOCATE( spring_energy_sites(nr, nc), source = 0.d0 ) 
     
-    do j = 1, nm_columns
-       do i = 1, nm_rows
-          spring_energy_sites(i, j) = HALF*sites_array(i, j)%mass*((sites_array(i, j)%omegazero)**2.0) * &
-                          (Radius(i, j) - sites_array(i, j)%radiuszero)**2.0 
+    do j = 1, nc
+       do i = 1, nr
+          spring_energy_sites(i, j) = HALF*site(i, j)%mass*((site(i, j)%omegazero)**2.0) * &
+                          (Radius(i, j) - site(i, j)%radiuszero)**2.0 
        enddo
     enddo
     
@@ -95,12 +95,12 @@ subroutine spring_force(SpringForce)
     ! local 
     integer :: i, j 
     
-    ALLOCATE(SpringForce(nm_rows, nm_columns), source = 0.d0)
+    ALLOCATE(SpringForce(nr, nc), source = 0.d0)
     
-    do j = 1, nm_columns
-       do i = 1, nm_rows
-          SpringForce(i, j) = sites_array(i, j)%mass*((sites_array(i, j)%omegazero)**2.0)*& 
-            (sites_array(i, j)%radiuszero-sites_array(i, j)%radius)
+    do j = 1, nc
+       do i = 1, nr
+          SpringForce(i, j) = site(i, j)%mass*((site(i, j)%omegazero)**2.0)*& 
+            (site(i, j)%radiuszero-site(i, j)%radius)
        enddo
     enddo
 end subroutine spring_force
@@ -112,14 +112,14 @@ subroutine eletric_force(pl, rho_el_real, elHam, EletricForce)
 
     ! args
     integer,             intent(in)  :: pl
-    real*8,              intent(in)  :: rho_el_real(dim_el, dim_el)
-    real*8,              intent(in)  :: elHam (dim_el, dim_el)
+    real*8,              intent(in)  :: rho_el_real(d_el, d_el)
+    real*8,              intent(in)  :: elHam (d_el, d_el)
     real*8, allocatable, intent(out) :: EletricForce(:,:)
     
     ! local 
     real*8,  allocatable :: EletricForceDiagonal(:,:), EletricForceNonDiagOne(:,:)
     real*8,  allocatable :: EletricForceNonDiagTwo(:,:)
-    real*8               :: Qnumbers_energy(6)
+    real*8               :: Qn_erg(6)
     real*8,  allocatable :: ForceStates(:)
     real*8,  allocatable :: derivativeTerm(:,:)
     real*8,  allocatable :: hamTimesRhoEl(:,:)
@@ -128,22 +128,22 @@ subroutine eletric_force(pl, rho_el_real, elHam, EletricForce)
     real*8,  allocatable :: ElHamRhoDer(:,:)
     real*8               :: ElForceNonDiagOne, ElForceNonDiagTwo
     
-    Qnumbers_energy = [ 1.d0, 2.d0, 2.d0, 3.d0, 3.d0, 3.d0 ]
+    Qn_erg = [ 1.d0, 2.d0, 2.d0, 3.d0, 3.d0, 3.d0 ]
 
-    allocate( EletricForceNonDiagOne(nm_rows, nm_columns), source = 0.d0 )
-    allocate( EletricForceNonDiagTwo(nm_rows, nm_columns), source = 0.d0 ) 
-    allocate( ElHamRhoDer(nm_rows, nm_columns)           , source = 0.d0 ) 
-    allocate( MtxElForceNonDiagOne(nm_rows, nm_columns)  , source = 0.d0 )
-    allocate( MtxElForceNonDiagTwo(nm_rows, nm_columns)  , source = 0.d0 )
-    allocate( ElRhoDerTerm(nm_rows, nm_columns)          , source = 0.d0 )
-    allocate( hamTimesRhoEl(dim_el, dim_el)              , source = 0.d0 ) 
-    allocate( EletricForce(nm_rows, nm_columns)          , source = 0.d0 ) 
-    allocate( EletricForceDiagonal(nm_rows, nm_columns)  , source = 0.d0 )
-    allocate( derivativeTerm(nm_rows, nm_columns)        , source = 0.d0 ) 
-    allocate( ForceStates(nmstates_el)                   , source = 0.d0 )
+    allocate( EletricForceNonDiagOne(nr, nc), source = 0.d0 )
+    allocate( EletricForceNonDiagTwo(nr, nc), source = 0.d0 ) 
+    allocate( ElHamRhoDer(nr, nc)           , source = 0.d0 ) 
+    allocate( MtxElForceNonDiagOne(nr, nc)  , source = 0.d0 )
+    allocate( MtxElForceNonDiagTwo(nr, nc)  , source = 0.d0 )
+    allocate( ElRhoDerTerm(nr, nc)          , source = 0.d0 )
+    allocate( hamTimesRhoEl(d_el, d_el)              , source = 0.d0 ) 
+    allocate( EletricForce(nr, nc)          , source = 0.d0 ) 
+    allocate( EletricForceDiagonal(nr, nc)  , source = 0.d0 )
+    allocate( derivativeTerm(nr, nc)        , source = 0.d0 ) 
+    allocate( ForceStates(ns_el)                   , source = 0.d0 )
     
     !========== CALCULO DAS DERIVADAS DW/DR ===========================
-    derivativeTerm(:,:) = - (( 4.d0 * hbar ) / ( me * (sites_array(:, :)%radius)**3.0 ))
+    derivativeTerm(:,:) = - (( 4.d0 * hbar ) / ( me * (site(:, :)%radius)**3.0 ))
     !==================================================================
     
     !=========== CALCULO DA MATRIZ DERIVA =========
@@ -152,16 +152,16 @@ subroutine eletric_force(pl, rho_el_real, elHam, EletricForce)
     
     if (pl == 1 .OR. pl == nm_divisoes/2 .OR. pl == nm_divisoes ) then
       print*, "Matriz derivada"
-      call print_mat2(dermtx, dim_el, dim_el) 
+      call print_mat2(dermtx, d_el, d_el) 
     endif
     
     !======= PARTE DIAGONAL DA FORCA - DEPENDENTE DAS POPULACOES =============
     l = 1
-    do j = 1, nm_columns
-       do i = 1, nm_rows
+    do j = 1, nc
+       do i = 1, nr
     
-       do k = 1, nmstates_el
-          ForceStates(k) = rho_el_real(l, l) * Qnumbers_energy(k) * hbar
+       do k = 1, ns_el
+          ForceStates(k) = rho_el_real(l, l) * Qn_erg(k) * hbar
           l = l + 1
        enddo
     
@@ -178,10 +178,10 @@ subroutine eletric_force(pl, rho_el_real, elHam, EletricForce)
     ElForceNonDiagOne = 0.d0
     
     l = 1
-    do j = 1, nm_columns
-       do i = 1, nm_rows
+    do j = 1, nc
+       do i = 1, nr
     
-         do k = 1, nmstates_el
+         do k = 1, ns_el
             ElForceNonDiagOne = ElForceNonDiagOne + ElRhoDerTerm(l, l)
             l = l + 1
          enddo
@@ -193,7 +193,7 @@ subroutine eletric_force(pl, rho_el_real, elHam, EletricForce)
     enddo
     
    !==========================================================================
-   EletricForceNonDiagOne(:,:) =  2.d0 * ev_to_joule * sites_array(:,:)%t * MtxElForceNonDiagOne(:,:)  
+   EletricForceNonDiagOne(:,:) =  2.d0 * ev_to_joule * site(:,:)%t * MtxElForceNonDiagOne(:,:)  
    
    ! ================== FORCA ELETRICA TOTAL =====================
    EletricForce(:,:) = - EletricForceDiagonal(:,:) - EletricForceNonDiagOne(:,:) !+ EletricForceNonDiagTwo(i, j)
@@ -213,16 +213,16 @@ end subroutine eletric_force
 
 
 
-subroutine velocity_verlet(pl, BWRadius, BWRadialVel, BWEletricForce, BWSpringForce, delta_t, rho_el_real, & 
+subroutine velocity_verlet(pl, BWRadius, BWRadialVel, BWEletricForce, BWSpringForce, dt, rho_el_real, & 
                 elHam, FWRadius, FWRadialVel, FWEletricForce, FWSpringForce, SpringEnergy, KinectEnergy )
     implicit none
 
     ! args
     integer,               intent(in)  :: pl 
-    real*8,                intent(in), dimension(nm_rows, nm_columns) :: BWRadius, BWRadialVel, BWEletricForce, BWSpringForce
-    real*8,                intent(in)  :: delta_t
-    real*8,                intent(in)  :: rho_el_real(dim_el, dim_el)
-    real*8,                intent(in)  :: elHam(dim_el, dim_el)
+    real*8,                intent(in), dimension(nr, nc) :: BWRadius, BWRadialVel, BWEletricForce, BWSpringForce
+    real*8,                intent(in)  :: dt
+    real*8,                intent(in)  :: rho_el_real(d_el, d_el)
+    real*8,                intent(in)  :: elHam(d_el, d_el)
     real*8,  allocatable,  intent(out) :: FWRadius(:,:), FWRadialVel(:,:), FWEletricForce(:,:), FWSpringForce(:,:)
     real*8,                intent(out) :: SpringEnergy, KinectEnergy
     
@@ -231,13 +231,13 @@ subroutine velocity_verlet(pl, BWRadius, BWRadialVel, BWEletricForce, BWSpringFo
     integer             :: k, i, j 
     !BWRadius -> BackWardRadius (raio anterior).    FWRadius -> ForWardRadius (raio posterior).
     
-    allocate( FWRadius(nm_rows, nm_columns)    , source = 0.d0 ) 
-    allocate( FWRadialVel(nm_rows, nm_columns) , source = 0.d0 )
-    allocate( BWForce(nm_rows, nm_columns)     , source = 0.d0 )
-    allocate( FWForce(nm_rows, nm_columns)     , source = 0.d0 )
+    allocate( FWRadius(nr, nc)    , source = 0.d0 ) 
+    allocate( FWRadialVel(nr, nc) , source = 0.d0 )
+    allocate( BWForce(nr, nc)     , source = 0.d0 )
+    allocate( FWForce(nr, nc)     , source = 0.d0 )
     !ALOCO FWEletricForce na subrotina eletric_force
          
-    forall (i = 1:nm_rows, j = 1:nm_columns) BWForce(i, j) =  BWEletricForce(i, j) + BWSpringForce(i, j) 
+    forall (i = 1:nr, j = 1:nc) BWForce(i, j) =  BWEletricForce(i, j) + BWSpringForce(i, j) 
     
     !=============== CALCULO DA ENERGIA CINETICA E POTENCIAL BASEADO NA FORCA EM t =====
     call kinect_energy(BWRadialVel, KinectEnergy) 
@@ -246,14 +246,14 @@ subroutine velocity_verlet(pl, BWRadius, BWRadialVel, BWEletricForce, BWSpringFo
 
     !========== CALCULO DOS NOVOS RAIOS BASEDOS NA FORCA EM t ======================
 
-    FWRadius(:,:) = BWRadius(:,:) + ( BWRadialVel(:,:) *  (delta_t * 1.d-12)) + (BWForce(:,:) * &
-                   ( ( (delta_t * 1.d-12))**2.d0 / (2.d0 * sites_array(:,:)%mass ) ) )
+    FWRadius(:,:) = BWRadius(:,:) + ( BWRadialVel(:,:) *  (dt * 1.d-12)) + (BWForce(:,:) * &
+                   ( ( (dt * 1.d-12))**2.d0 / (2.d0 * site(:,:)%mass ) ) )
 
     !===============================================================================
 
     !========= ATUALIZO O RAIO E OMEGA ==============================================
-     sites_array(:,:)%radius = FWRadius(:,:)
-     sites_array(:,:)%omega = ( 2.d0 * hbar / ( me  * (sites_array(:,:)%radius)**2.0 ) ) * hz_to_thz
+     site(:,:)%radius = FWRadius(:,:)
+     site(:,:)%omega = ( 2.d0 * hbar / ( me  * (site(:,:)%radius)**2.0 ) ) * hz_to_thz
     !================================================================================
 
     !======== CALCULO DAS NOVAS FORCAS EM t + delta t ===============================
@@ -266,12 +266,12 @@ subroutine velocity_verlet(pl, BWRadius, BWRadialVel, BWEletricForce, BWSpringFo
     !==============================================================================
     
     !====== NOVA VELOCIDADE RADIAL ===================================================
-    FWRadialVel(:,:) = BWRadialVel(:,:) + ( BWForce(:,:) + FWForce(:,:) ) * ( (delta_t * 1.d-12) / (2.d0 &
-            * sites_array(:,:)%mass ) ) 
+    FWRadialVel(:,:) = BWRadialVel(:,:) + ( BWForce(:,:) + FWForce(:,:) ) * ( (dt * 1.d-12) / (2.d0 &
+            * site(:,:)%mass ) ) 
     !=================================================================================
     
     !===== ATUALIZO A VELOCIDADE RADIAL  ===========================================
-     sites_array(:,:)%radial_vel = FWRadialVel(:,:) 
+     site(:,:)%radial_vel = FWRadialVel(:,:) 
     !==============================================================================
 
     deallocate(BWForce, FWForce) 

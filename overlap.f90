@@ -7,96 +7,96 @@ use parameters_m
 contains
 
 
-subroutine define_sitios(sites_array)
+subroutine define_sitios(site)
 !subrotina que define todos os sitios da celula OPV
     implicit none
 
     ! args
-    type(quantum_site), allocatable, intent(out) :: sites_array(:,:)
+    type(quantum_site), allocatable, intent(out) :: site(:,:)
     
     ! local
     real*8, parameter :: scale_nanometro = 1.d-9
     
     
-    allocate(sites_array(nm_rows, nm_columns))
+    allocate(site(nr, nc))
     
     
     
-    do j = 1, nm_columns
-      do i = 1, nm_rows
-        sites_array(i, j)%t = siteCoupling
+    do j = 1, nc
+      do i = 1, nr
+        site(i, j)%t = siteCoupling
       enddo
     enddo    
  
 
-    do j = 1, nm_columns
-      do i = 1, nm_rows
-        sites_array(i, j)%homo_energy = 0.d0 
-        sites_array(i, j)%lumo_energy = 0.d0 
+    do j = 1, nc
+      do i = 1, nr
+        site(i, j)%homo_energy = 0.d0 
+        site(i, j)%lumo_energy = 0.d0 
       enddo
     enddo
 
-    do j = 1, nm_columns
-      do i = 1, nm_rows
-        sites_array(i, j)%mass       = siteMass  
-        sites_array(i, j)%radiuszero = raioZero
-        sites_array(i, j)%radius     = sites_array(i, j)%radiuszero
-        sites_array(i, j)%radial_vel = 0.d0 
+    do j = 1, nc
+      do i = 1, nr
+        site(i, j)%mass       = siteMass  
+        site(i, j)%radiuszero = raioZero
+        site(i, j)%radius     = site(i, j)%radiuszero
+        site(i, j)%radial_vel = 0.d0 
       enddo
     enddo
     
-    do j = 1, nm_columns
-      do i = 1, nm_rows
-        sites_array(i, j)%omega = ( 2.d0 * hbar / ( me  * (sites_array(i, j)%radius)**2.0 ) ) * hz_to_thz   !largura a meia altura
-        sites_array(i, j)%omegazero = sites_array(i, j)%omega * thz_to_hz 
+    do j = 1, nc
+      do i = 1, nr
+        site(i, j)%omega = ( 2.d0 * hbar / ( me  * (site(i, j)%radius)**2.0 ) ) * hz_to_thz   !largura a meia altura
+        site(i, j)%omegazero = site(i, j)%omega * thz_to_hz 
          !omegazero é igual ao omega no instante inicial
       enddo
     enddo
     
-    do j = 1, nm_columns
-      do i = 1, nm_rows
-        sites_array(i, j)%site_type_el = (sites_array(i, j)%lumo_energy) 
+    do j = 1, nc
+      do i = 1, nr
+        site(i, j)%V0 = (site(i, j)%lumo_energy) 
       enddo
     enddo
     
-    do j = 1, nm_columns
-      do i = 1, nm_rows
+    do j = 1, nc
+      do i = 1, nr
         !PRIMEIRO SITIO LOCALIZADO EM 0,0
         if (i == 1 .AND. j == 1) then
-          sites_array(i, j)%posicao_x = 0.d0
-          sites_array(i, j)%posicao_y = 0.d0
+          site(i, j)%_x = 0.d0
+          site(i, j)%_y = 0.d0
     
         else
-          sites_array(i, j)%posicao_x = sites_array(i , j-1)%posicao_x + sites_array(i, j-1)%radius + sites_array(i, j)%radius &
+          site(i, j)%_x = site(i , j-1)%_x + site(i, j-1)%radius + site(i, j)%radius &
             + distance_molecule
-          sites_array(i, j)%posicao_y = 0.d0
+          site(i, j)%_y = 0.d0
     
         endif
       enddo
     enddo
     
-    do j = 1, nm_columns
-      do i = 1, nm_rows
-        print*, "tamanho molecula", i, j, "em nm é", 2.d0 * sites_array(i, j)%radius * 1.d9
+    do j = 1, nc
+      do i = 1, nr
+        print*, "tamanho molecula", i, j, "em nm é", 2.d0 * site(i, j)%radius * 1.d9
         enddo
     enddo
     
-    do j = 1, nm_columns
-      do i = 1, nm_rows
-        print*, "omega da molecula", i, j, "em Thz",  sites_array(i, j)%omega
+    do j = 1, nc
+      do i = 1, nr
+        print*, "omega da molecula", i, j, "em Thz",  site(i, j)%omega
         enddo
     enddo
     
-    do j = 1, nm_columns
-      do i = 1, nm_rows
-        print*, "V type da molecula el", i, j, "em ev é",  sites_array(i, j)%site_type_el
+    do j = 1, nc
+      do i = 1, nr
+        print*, "V type da molecula el", i, j, "em ev é",  site(i, j)%V0
       enddo
     enddo
     
     
-    do j = 1, nm_columns
-      do i = 1, nm_rows
-        print*, "HBAR * omega da molecula:", i, j, "em ev é",  HB_ev_ps*sites_array(i, j)%omega
+    do j = 1, nc
+      do i = 1, nr
+        print*, "HBAR * omega da molecula:", i, j, "em ev é",  HB_ev_ps*site(i, j)%omega
       enddo
     enddo
     
@@ -104,12 +104,12 @@ subroutine define_sitios(sites_array)
     print*, "distancia entre os sitios utilizada:", distance_molecule
 end subroutine define_sitios
 
-subroutine DerivativeOverlap(sites_array, nstates, l1, c1, l2, c2, DerOvlp)        
+subroutine DerivativeOverlap(site, nstates, l1, c1, l2, c2, DerOvlp)        
     implicit none
     !SUBROTINA PARA CALCULAR OS ELEMENTOS <sitio(l1, c1, x-x0, y-y0) | d/dR sitio(l2, c2, x, y) >
 
     ! args
-    type(quantum_site),  intent(in)  :: sites_array(nm_rows, nm_columns)
+    type(quantum_site),  intent(in)  :: site(nr, nc)
     integer,             intent(in)  :: nstates, c1, l1, c2, l2 
     real*8, allocatable, intent(out) :: DerOvlp(:, :)
     
@@ -126,27 +126,27 @@ subroutine DerivativeOverlap(sites_array, nstates, l1, c1, l2, c2, DerOvlp)
     integer   :: Q_numbers
     real*8    :: EXPd2, omegaDerivative
     real*8    :: me2, hbar2, sin2th, cos2th
-    integer   :: Qnumbers_row(6) !fornece o nm quantico dos estados
+    integer   :: Qn(6) !fornece o nm quantico dos estados
    
     allocate(DerOvlp(nstates, nstates), source = R_zero )
     
-    Qnumbers_row = (/ 00, 01, 10, 02, 11, 20 /)
+    Qn = (/ 00, 01, 10, 02, 11, 20 /)
     
     x1 = 0.d0 
     y1 = 0.d0 
-    w1 = sites_array(l1, c1)%omega*thz_to_hz
+    w1 = site(l1, c1)%omega*thz_to_hz
     
-    x2 = sites_array(l2, c2)%posicao_x - sites_array(l1, c1)%posicao_x
-    y2 = sites_array(l2, c2)%posicao_y - sites_array(l1, c1)%posicao_y
-    w2 = sites_array(l2, c2)%omega*thz_to_hz
+    x2 = site(l2, c2)%_x - site(l1, c1)%_x
+    y2 = site(l2, c2)%_y - site(l1, c1)%_y
+    w2 = site(l2, c2)%omega*thz_to_hz
     
     x12 = x1 - x2
     y12 = y1 - y2
     
     d = dsqrt(x12*x12 + y12*y12)
-    d2 = d**2.0
-    d3 = d**3.0
-    d4 = d**4.0
+    d2 = d*d
+    d3 = d2*d
+    d4 = d2*d2
     
     if (d > tol) then
       sinth = y12 / d
@@ -158,7 +158,7 @@ subroutine DerivativeOverlap(sites_array, nstates, l1, c1, l2, c2, DerOvlp)
     
     
     
-    omegaDerivative = - ((4.d0 * hbar) / (me * (sites_array(l2, c2)%radius)**3.0)  )
+    omegaDerivative = - ((4.d0 * hbar) / (me * (site(l2, c2)%radius)**3.0)  )
     
     sinth2 = sinth**2.0d0
     sinth3 = sinth**3.0d0
@@ -210,7 +210,7 @@ subroutine DerivativeOverlap(sites_array, nstates, l1, c1, l2, c2, DerOvlp)
     
     do j = 1 , nstates
       do i = 1 , nstates
-        Q_numbers = 100*Qnumbers_row(i) + 1*Qnumbers_row(j)
+        Q_numbers = 100*Qn(i) + 1*Qn(j)
         select case (Q_numbers)
     
         case(0000)
@@ -257,13 +257,13 @@ subroutine DerivativeOverlap(sites_array, nstates, l1, c1, l2, c2, DerOvlp)
 end subroutine DerivativeOverlap
 
 
-subroutine NewOverlap(sites_array, nstates, l1, c1, l2, c2, Qnumbers_row, S)
+subroutine NewOverlap(site, nstates, l1, c1, l2, c2, Qn, S)
     implicit none
 
     ! args
-    type(quantum_site),  intent(in)  :: sites_array(nm_rows, nm_columns)
+    type(quantum_site),  intent(in)  :: site(nr, nc)
     integer,             intent(in)  :: nstates, c1, l1, c2, l2
-    integer,             INTENT(IN)  :: Qnumbers_row(6) !Qnumbers_row faz o papel do antigo basis -> fornece o nm quantico dos estados
+    integer,             INTENT(IN)  :: Qn(6) !Qn faz o papel do antigo basis -> fornece o nm quantico dos estados
     real*8, allocatable, intent(out) :: S(:, :)
     
     ! local
@@ -280,12 +280,12 @@ subroutine NewOverlap(sites_array, nstates, l1, c1, l2, c2, Qnumbers_row, S)
     allocate(S(nstates, nstates), source = R_zero )
     
     
-    x1 = 0.d0 !sites_array(l1, c1)%posicao_x
-    y1 = 0.d0 !sites_array(l1, c1)%posicao_y
-    w1 = sites_array(l1, c1)%omega*thz_to_hz 
-    x2 = sites_array(l2, c2)%posicao_x - sites_array(l1, c1)%posicao_x
-    y2 = sites_array(l2, c2)%posicao_y - sites_array(l1, c1)%posicao_y
-    w2 = sites_array(l2, c2)%omega*thz_to_hz 
+    x1 = 0.d0 !site(l1, c1)%_x
+    y1 = 0.d0 !site(l1, c1)%_y
+    w1 = site(l1, c1)%omega*thz_to_hz 
+    x2 = site(l2, c2)%_x - site(l1, c1)%_x
+    y2 = site(l2, c2)%_y - site(l1, c1)%_y
+    w2 = site(l2, c2)%omega*thz_to_hz 
     x12 = x1 - x2
     y12 = y1 - y2
     
@@ -339,7 +339,7 @@ subroutine NewOverlap(sites_array, nstates, l1, c1, l2, c2, Qnumbers_row, S)
     
     do j = 1 , nstates
       do i = 1 , nstates
-        Q_numbers = 100*Qnumbers_row(i) + 1*Qnumbers_row(j)
+        Q_numbers = 100*Qn(i) + 1*Qn(j)
         select case (Q_numbers)
           case(0000)
           S(i, j) = 2.d0*EXPd2*wden2*wproduct
@@ -386,15 +386,15 @@ subroutine NewOverlap(sites_array, nstates, l1, c1, l2, c2, Qnumbers_row, S)
 
 
 
-subroutine Overlap(sites_array, nstates, l1, c1, l2, c2, Qnumbers_row, S)
+subroutine Overlap(site, nstates, l1, c1, l2, c2, Qn, S)
 !calcula o overlap S entre o sitio1(x, y) e o sitio2(x, y)
 !para todos os estados harmonicos
   implicit none
 
   ! args
-  type(quantum_site),  intent(in) :: sites_array(nm_rows, nm_columns)
+  type(quantum_site),  intent(in) :: site(nr, nc)
   integer,             intent(in) :: nstates, c1, l1, c2, l2
-  integer,             INTENT(IN) :: Qnumbers_row(6) !Qnumbers_row faz o papel do antigo basis -> fornece o nm quantico dos estados
+  integer,             INTENT(IN) :: Qn(6) !Qn faz o papel do antigo basis -> fornece o nm quantico dos estados
   real*8, allocatable, intent(out) :: S(:, :)
   
   ! local
@@ -406,12 +406,12 @@ subroutine Overlap(sites_array, nstates, l1, c1, l2, c2, Qnumbers_row, S)
   real*8 :: sin_th , sin_th2 , sin_th3 , sin_th4 , sin_th5 , sin_th6 , sin_th7 , sin_th8  , sin_2th , sin_2th2, sin_2th3 , sin_2th4
   real*8 :: cos_th , cos_th2 , cos_th3 , cos_th4 , cos_th5 , cos_th6, cos_th7 , cos_th8 , EXPd2 , renso7 , renso8
   
-  x1 = 0.d0 !sites_array(l1, c1)%posicao_x - sites_array(l2, c2)%posicao_x
-  y1 = 0.d0 !sites_array(l1, c1)%posicao_y - sites_array(l2, c2)%posicao_y
-  w1 = sites_array(l1, c1)%omega*thz_to_hz
-  x2 = sites_array(l2, c2)%posicao_x - sites_array(l1, c1)%posicao_x
-  y2 = sites_array(l2, c2)%posicao_y - sites_array(l1, c1)%posicao_y
-  w2 = sites_array(l2, c2)%omega*thz_to_hz
+  x1 = 0.d0 !site(l1, c1)%_x - site(l2, c2)%_x
+  y1 = 0.d0 !site(l1, c1)%_y - site(l2, c2)%_y
+  w1 = site(l1, c1)%omega*thz_to_hz
+  x2 = site(l2, c2)%_x - site(l1, c1)%_x
+  y2 = site(l2, c2)%_y - site(l1, c1)%_y
+  w2 = site(l2, c2)%omega*thz_to_hz
   x12 = x1- x2
   y12 = y1- y2
   
@@ -528,7 +528,7 @@ subroutine Overlap(sites_array, nstates, l1, c1, l2, c2, Qnumbers_row, S)
   
   ! if (j>=i) then
   
-  Q_numbers = 100*Qnumbers_row(i) + 1*Qnumbers_row(j)
+  Q_numbers = 100*Qn(i) + 1*Qn(j)
   
   select case (Q_numbers)
   

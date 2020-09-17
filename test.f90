@@ -34,12 +34,12 @@ subroutine call_ODE_solver(nm_divisoes)
     integer                     :: pl
     real*8                      :: ti, tf
     real*8                      :: EnergiaEl               !energia do eletron
-    real*8                      :: BWRadius(nm_rows, nm_columns), BWRadialVel(nm_rows, nm_columns) !Backward variables
+    real*8                      :: BWRadius(nr, nc), BWRadialVel(nr, nc) !Backward variables
     real*8                      :: SpringEnergy, KinectEnergy  !energia da mola e energia cinetica
     real*8,     allocatable     :: BWEletricForce(:,:)         !aloco na subrotina eletric_force
     real*8,     allocatable     :: BWSpringForce(:,:)          !aloco na subrotina spring_force
-    real*8,     allocatable     :: hamiltoniana_el_in(:,:)     !hamiltoniano inicial
-    real*8,     allocatable     :: hamiltoniana_el(:,:)        !hamitoniano calculado em t + delta t
+    real*8,     allocatable     :: h_el_in(:,:)     !hamiltoniano inicial
+    real*8,     allocatable     :: h_el(:,:)        !hamitoniano calculado em t + delta t
     real*8,     allocatable     :: FWRadius(:,:), FWRadialVel(:,:)
     real*8,     allocatable     :: FWEletricForce(:,:), FWSpringForce(:,:) !Forward variables
     real*8,     allocatable     :: rho_el_real(:,:)            !parte real da matriz densidade
@@ -48,20 +48,20 @@ subroutine call_ODE_solver(nm_divisoes)
     complex*16, allocatable     :: rho_el(:,:)                 !matriz densidade calculada em t + delta t
     
     
-    ALLOCATE(rho_el_sites_in(dim_el, dim_el), source = (0.d0, 0.d0))
-    ALLOCATE(pop_el_in(nm_rows, nm_columns), source = 0.d0)
-    ALLOCATE(rho_el_real(dim_el, dim_el ), source = 0.d0 ) 
+    ALLOCATE(rho_el_sites_in(d_el, d_el), source = (0.d0, 0.d0))
+    ALLOCATE(pop_el_in(nr, nc), source = 0.d0)
+    ALLOCATE(rho_el_real(d_el, d_el ), source = 0.d0 ) 
     
-    call define_sitios(sites_array) 
+    call define_sitios(site) 
     
     !============= CONDICOES INICIAIS NA BASE DOS SITIOS ==============
       rho_el_sites_in(initState, initState) = 1.d0 + 0.d0 * zi  !matriz densidade
       call rho_matrix_to_pop(rho_el_sites_in, pop_el_in)        !populacao de cada sitio
-      BWRadius = sites_array(:, :)%radius                       !raio inicial
-      BWRadialVel = sites_array(:, :)%radial_vel                !velocidade inicial
+      BWRadius = site(:, :)%radius                       !raio inicial
+      BWRadialVel = site(:, :)%radial_vel                !velocidade inicial
       rho_el_real = real(rho_el_sites_in)                       !parte real da matriz densidade
-      call build_hamiltonian(hamiltoniana_el_in)                !hamiltoniano inicial
-      call eletric_force(pl, rho_el_real, hamiltoniana_el_in, BWEletricForce) !Backward EletricForce
+      call build_hamiltonian(h_el_in)                !hamiltoniano inicial
+      call eletric_force(pl, rho_el_real, h_el_in, BWEletricForce) !Backward EletricForce
       call spring_force(BWSpringForce)                          !Backward SpringForce
     !================================================================
     
@@ -78,18 +78,18 @@ subroutine call_ODE_solver(nm_divisoes)
       
       !============= DEFINE O TEMPO FINAL E O DELTA_t ===========
       tf = float(pl)*(tmax)/float(nm_divisoes)
-      delta_t = tf - ti 
+      dt = tf - ti 
       !==========================================================
     
     
     
       !=============== CALCULO DO HAMILTONIANO  ================
-      call build_hamiltonian(hamiltoniana_el)
+      call build_hamiltonian(h_el)
       !==========================================================
     
     
       !============== EVOLUCAO PARA O ELETRON DE ti ATÉ tf =======
-      call test(pl, ti, tf, hamiltoniana_el, rho_el_sites_in, pop_el_in, rho_el, EnergiaEl, pop_el)
+      call test(pl, ti, tf, h_el, rho_el_sites_in, pop_el_in, rho_el, EnergiaEl, pop_el)
       !===========================================================
       
       !============= ATUALIZO AS CONDICOES INICIAIS QUANTICAS ==============
@@ -101,8 +101,8 @@ subroutine call_ODE_solver(nm_divisoes)
         
       !============ CALCULO A EVOLUCAO CLASSICA COM O ALGORITMO VELOCITY VERLET ===========================
     
-      call velocity_verlet(pl, BWRadius, BWRadialVel, BWEletricForce, BWSpringForce, delta_t, rho_el_real, &
-                           hamiltoniana_el, FWRadius, FWRadialVel, FWEletricForce, FWSpringForce, SpringEnergy, KinectEnergy) 
+      call velocity_verlet(pl, BWRadius, BWRadialVel, BWEletricForce, BWSpringForce, dt, rho_el_real, &
+                           h_el, FWRadius, FWRadialVel, FWEletricForce, FWSpringForce, SpringEnergy, KinectEnergy) 
                   !calculamos a energia cinetica e da mola no algoritmo de verlet em um tempo ti para ser igual ao resto do programa
       !====================================================================================================
     
@@ -125,7 +125,7 @@ subroutine call_ODE_solver(nm_divisoes)
       
     
       !========== ESCREVE OS RAIOS E AS FORÇAS ===========================================================
-      write(100, "(60F20.8)"), tf, sites_array(1, 1)%radius*1.d9, sites_array(1, 2)%radius*1.d9 
+      write(100, "(60F20.8)"), tf, site(1, 1)%radius*1.d9, site(1, 2)%radius*1.d9 
       write(101, "(60F20.8)"), tf, BWEletricForce(1, 1)*1.d11, BWSpringForce(1, 1)*1.d11, BWEletricForce(1, 2)*1.d11, BWSpringForce(1, 2)*1.d11
       !===================================================================================================
       
@@ -152,9 +152,9 @@ subroutine test(step, ti, tf, hamiltoniana, rho_el_sites_in, pop_el_in, rho_site
     integer,                 intent(in)  :: step 
     real*8,                  intent(in)  :: ti !tempo inicial que vamos utilizar no ODE e que não  vai ser atualizado uma vez chamada a rotina
     real*8,                  intent(in)  :: tf ! tempo final que nao vai ser atualizado uma vez chamado a rotina
-    real*8,                  intent(in)  :: hamiltoniana(dim_el, dim_el) 
-    complex*16,              intent(in)  :: rho_el_sites_in(dim_el, dim_el)
-    real*8,                  intent(in)  :: pop_el_in(nm_rows, nm_columns)
+    real*8,                  intent(in)  :: hamiltoniana(d_el, d_el) 
+    complex*16,              intent(in)  :: rho_el_sites_in(d_el, d_el)
+    real*8,                  intent(in)  :: pop_el_in(nr, nc)
     complex*16, allocatable, intent(out) :: rho_sites(:,:)
     real*8,                  intent(out) :: ParticleEnergy
     real*8,     allocatable, intent(out) :: pop(:,:)
@@ -174,21 +174,21 @@ subroutine test(step, ti, tf, hamiltoniana, rho_el_sites_in, pop_el_in, rho_site
     real*8                   :: relerr
     real*8                   :: t !esse t é a variável independente do ODE
     real*8                   :: tout 
-    real*8                   :: energ(dim_el) 
+    real*8                   :: energ(d_el) 
     
     
     
-     ALLOCATE( rho_sites_in(dim_el, dim_el)        , source = (0.d0, 0.d0) )
-     ALLOCATE( pop_in(nm_rows, nm_columns)         , source = 0.d0         )
-     ALLOCATE( y(neqn_el)                          , source = 0.d0         )
-     ALLOCATE( yp(neqn_el)                         , source = 0.d0         )
-     ALLOCATE( matriz_temporaria(dim_el, dim_el)   , source = (0.d0, 0.d0) )
-     ALLOCATE( rho_sites(dim_el, dim_el)           , source = (0.d0, 0.d0) )
-     ALLOCATE( pop(nm_rows, nm_columns)            , source = 0.d0         )
-     ALLOCATE( work(100+21*neqn_el))
-     ALLOCATE( rho_ham_in(dim_el, dim_el)          , source = (0.d0, 0.d0) ) !populaca inicial na base da hamiltoniana
-     ALLOCATE( rho_ham(dim_el, dim_el)             , source = (0.d0, 0.d0) )
-     ALLOCATE( rhomtx(dim_el, dim_el)              , source =  0.d0        ) 
+     allocate( rho_sites_in(d_el, d_el)        , source = (0.d0, 0.d0) )
+     allocate( pop_in(nr, nc)         , source = 0.d0         )
+     allocate( y(neqn_el)                          , source = 0.d0         )
+     allocate( yp(neqn_el)                         , source = 0.d0         )
+     allocate( matriz_temporaria(d_el, d_el)   , source = (0.d0, 0.d0) )
+     allocate( rho_sites(d_el, d_el)           , source = (0.d0, 0.d0) )
+     allocate( pop(nr, nc)            , source = 0.d0         )
+     allocate( work(100+21*neqn_el))
+     allocate( rho_ham_in(d_el, d_el)          , source = (0.d0, 0.d0) ) !populaca inicial na base da hamiltoniana
+     allocate( rho_ham(d_el, d_el)             , source = (0.d0, 0.d0) )
+     allocate( rhomtx(d_el, d_el)              , source =  0.d0        ) 
     
     
      rho_sites_in = rho_el_sites_in

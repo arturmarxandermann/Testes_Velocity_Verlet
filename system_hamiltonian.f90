@@ -33,33 +33,33 @@ subroutine build_hamiltonian(hamiltonian)
     real*8, INTENT(OUT), allocatable :: hamiltonian(:,:)
 
     !local
-    integer             :: nmstates, c1, r1, s1, s2, c2, r2
+    integer             :: ns, c1, r1, s1, s2, c2, r2
     real*8, allocatable :: S(:,:)
     real*8, allocatable :: coup_temp(:,:)
-    real*8              :: site_type(nm_rows, nm_columns), omegas(nm_rows, nm_columns)
-    real*8              :: Qnumbers_energy(6)
-    INTEGER             :: Qnumbers_row(6)
+    real*8              :: site_type(nr, nc), omegas(nr, nc)
+    real*8              :: Qn_erg(6)
+    INTEGER             :: Qn(6)
     
     !criando o vetor associado aos valores dos numeros quanticos dos estados do osciladores harmonicos
-    Qnumbers_row = [ 00, 01, 10, 02, 11, 20 ]
+    Qn = [ 00, 01, 10, 02, 11, 20 ]
     
     !criando o vetor com as energias associado a cada numero quantico
-    Qnumbers_energy = [ 1.d0, 2.d0, 2.d0, 3.d0, 3.d0, 3.d0 ]
+    Qn_erg = [ 1.d0, 2.d0, 2.d0, 3.d0, 3.d0, 3.d0 ]
     
-    nmstates       = nmstates_el
-    site_type(:,:) = sites_array(:,:)%site_type_el
-    omegas(:,:)    = sites_array(:,:)%omega
+    ns       = ns_el
+    site_type(:,:) = site(:,:)%V0
+    omegas(:,:)    = site(:,:)%omega
     
-    allocate(hamiltonian(dim_el , dim_el) , source = 0.d0 )
-    allocate(coup_temp(nmstates, nmstates), source = 0.d0 )
-    allocate(S(nmstates, nmstates)        , source = 0.d0 ) 
+    allocate(hamiltonian(d_el , d_el) , source = 0.d0 )
+    allocate(coup_temp(ns, ns), source = 0.d0 )
+    allocate(S(ns, ns)        , source = 0.d0 ) 
 
     !---- PARTE DIAGONAL -----
     k = 1
-    do j = 1, nm_columns
-      do i = 1, nm_rows
-        do s1 = 1, nmstates
-           hamiltonian(k, k) = site_type(i, j) + HB_ev_ps * omegas(i, j) *  Qnumbers_energy(s1) 
+    do j = 1, nc
+      do i = 1, nr
+        do s1 = 1, ns
+           hamiltonian(k, k) = site_type(i, j) + HB_ev_ps * omegas(i, j) *  Qn_erg(s1) 
            k = k + 1
          enddo
        enddo
@@ -70,25 +70,25 @@ subroutine build_hamiltonian(hamiltonian)
     !---- PARTE NÂO DIAGONAL ---------
     l = 0
     k = 0
-    do c1 = 1, nm_columns
-      do r1 = 1, nm_rows
+    do c1 = 1, nc
+      do r1 = 1, nr
         k = 0
-        do c2 = 1, nm_columns
-          do r2 = 1, nm_rows 
+        do c2 = 1, nc
+          do r2 = 1, nr 
             if ( k > l ) then 
-             call NewOverlap(sites_array, nmstates, r2, c2, r1, c1, Qnumbers_row, S)
-              do s2 = 1, nmstates
-               do s1 = 1, nmstates
+             call NewOverlap(site, ns, r2, c2, r1, c1, Qn, S)
+              do s2 = 1, ns
+               do s1 = 1, ns
                  
-                  coup_temp(s1, s2) = S(s1, s2) * sites_array(r2, c2)%t
+                  coup_temp(s1, s2) = S(s1, s2) * site(r2, c2)%t
                  
                 enddo
               enddo
-              hamiltonian(k*nmstates+1:k*nmstates+nmstates, l*nmstates+1:l*nmstates+nmstates) = &
-              RESHAPE(coup_temp, (/nmstates, nmstates/) ) !triangulo de baixo
+              hamiltonian(k*ns+1:k*ns+ns, l*ns+1:l*ns+ns) = &
+              RESHAPE(coup_temp, [ns, ns] ) !triangulo de baixo
 
-              hamiltonian(l*nmstates+1:l*nmstates+nmstates, k*nmstates+1:k*nmstates+nmstates) = &
-              RESHAPE(transpose(coup_temp), (/nmstates, nmstates/) ) !triangulo de cima
+              hamiltonian(l*ns+1:l*ns+ns, k*ns+1:k*ns+ns) = &
+              RESHAPE(transpose(coup_temp), [ns, ns] ) !triangulo de cima
             endif
           k = k + 1
           enddo
@@ -109,25 +109,25 @@ subroutine calculate_eigenvectors(pl, hamiltoniana, energias, phi, phi_transpose
 
     ! args
     integer             , intent(in)  :: pl
-    real*8              , intent(in)  :: hamiltoniana(dim_el,dim_el)
+    real*8              , intent(in)  :: hamiltoniana(d_el,d_el)
     real*8 , allocatable, intent(out) :: energias(:)
     real*8 , allocatable, intent(out) :: phi(:,:), phi_transpose(:,:), omega_matrix(:,:)
 
     ! local 
-    real*8, allocatable ::  hamiltoniana_diag(:,:)
+    real*8, allocatable ::  H_temp(:,:)
     character(len=1)    :: jobz, uplo
     integer             :: info, is, js 
 
-    allocate(phi(dim_el, dim_el)               , source = 0.d0)
-    allocate(phi_transpose(dim_el, dim_el)     , source = 0.d0)
-    allocate(omega_matrix(dim_el, dim_el)      , source = 0.d0)
-    allocate(energias(dim_el)                  , source = 0.d0)
-    allocate(hamiltoniana_diag(dim_el, dim_el) , source = 0.d0)
+    allocate(phi(d_el, d_el)               , source = 0.d0)
+    allocate(phi_transpose(d_el, d_el)     , source = 0.d0)
+    allocate(omega_matrix(d_el, d_el)      , source = 0.d0)
+    allocate(energias(d_el)                  , source = 0.d0)
+    allocate(H_temp(d_el, d_el) , source = 0.d0)
    
     info = 0 
-    hamiltoniana_diag = hamiltoniana
+    H_temp = hamiltoniana
     
-    call syevd(hamiltoniana_diag, energias, "V", "L", info)
+    call syevd(H_temp, energias, "V", "L", info)
     
     !If info = 0, contains the n orthonormal eigenvectors, stored by columns.
     !(The i-th column corresponds to the ith eigenvalue.)
@@ -136,22 +136,22 @@ subroutine calculate_eigenvectors(pl, hamiltoniana, energias, phi, phi_transpose
     if ( info /= 0 ) write(*,*) info, "Error to found eigenvalues"
     
     if ( pl == 1 .OR. pl == nm_divisoes/2 .OR. pl == nm_divisoes ) then
-      do i = 1, dim_el
+      do i = 1, d_el
       print*, "ENERGIA", i, energias(i)
       enddo
     endif
     
     !========== CONSTRUCAO DA MATRIZ DE AUTOVETORES ========
-    do n = 1, dim_el
-      phi(n,:) = hamiltoniana_diag(n,:)
+    do n = 1, d_el
+      phi(n,:) = H_temp(n,:)
     enddo
     !=======================================================
     
     phi_transpose = transpose(phi)
     
     !============== CONSTRUÇÃO DA MATRIZ DE FREQUÊNCIAS ========================
-    do j = 1, dim_el
-      do i = 1, dim_el
+    do j = 1, d_el
+      do i = 1, d_el
         omega_matrix(i, j) = (energias(i) - energias(j)) / HB_ev_ps !omegas em 1/s
       enddo
     enddo
@@ -159,42 +159,42 @@ subroutine calculate_eigenvectors(pl, hamiltoniana, energias, phi, phi_transpose
     
     13 format(3es14.5E3)
     
-    deallocate(hamiltoniana_diag) 
+    deallocate(H_temp) 
 
 end subroutine calculate_eigenvectors
 
 
-subroutine build_overlap_matrix(nmstates, dim_el, ovlpmatrix)
+subroutine build_overlap_matrix(ns, d_el, ovlpmatrix)
     implicit none
 
     !args
-    integer            , intent(in)  :: nmstates, dim_el
+    integer            , intent(in)  :: ns, d_el
     real*8, allocatable, intent(out) :: ovlpmatrix(:,:)
    
     !local 
     real*8, allocatable :: S(:,:)
     integer             :: c1, c2, r1, r2
-    INTEGER             :: Qnumbers_row(6)
+    INTEGER             :: Qn(6)
 
-    allocate(ovlpmatrix(dim_el, dim_el), source = 0.d0)
+    allocate(ovlpmatrix(d_el, d_el), source = 0.d0)
     
-    Qnumbers_row = (/ 00, 01, 10, 02, 11, 20 /)
+    Qn = [ 00, 01, 10, 02, 11, 20 ]
 
     l = 0
     k = 0
-    do c1 = 1, nm_columns
-      do r1 = 1, nm_rows
+    do c1 = 1, nc
+      do r1 = 1, nr
           k = 0
-        do c2 = 1, nm_columns
-          do r2 = 1, nm_rows
+        do c2 = 1, nc
+          do r2 = 1, nr
             if ( k > l ) then
-            call Overlap(sites_array, nmstates, r2, c2, r1, c1, Qnumbers_row, S)
+            call Overlap(site, ns, r2, c2, r1, c1, Qn, S)
 
-            ovlpmatrix(k*nmstates+1:k*nmstates+nmstates, l*nmstates+1:l*nmstates+nmstates) =  &
-            RESHAPE(S, (/nmstates, nmstates/) )
+            ovlpmatrix(k*ns+1:k*ns+ns, l*ns+1:l*ns+ns) =  &
+            RESHAPE(S, [ns, ns] )
 
-            ovlpmatrix(l*nmstates+1:l*nmstates+nmstates, k*nmstates+1:k*nmstates+nmstates) =  &
-            RESHAPE(transpose(S), (/nmstates, nmstates/) )
+            ovlpmatrix(l*ns+1:l*ns+ns, k*ns+1:k*ns+ns) =  &
+            RESHAPE(transpose(S), [ns, ns] )
     
             endif
             k = k + 1
@@ -204,7 +204,7 @@ subroutine build_overlap_matrix(nmstates, dim_el, ovlpmatrix)
       enddo
     enddo
     
-    do j = 1, dim_el
+    do j = 1, d_el
         ovlpmatrix(j,j) = 1.d0 
     enddo 
     
@@ -221,24 +221,24 @@ subroutine calculate_derivative_matrix(dermtx)
     real*8, allocatable :: derivativeMtx(:, :)
     integer             :: c1, r1, c2, r2
     
-    allocate(dermtx(dim_el, dim_el), source = 0.d0 )
+    allocate(dermtx(d_el, d_el), source = 0.d0 )
 
     l = 0
     k = 0
-    do c1 = 1, nm_columns
-      do r1 = 1, nm_rows
+    do c1 = 1, nc
+      do r1 = 1, nr
           k = 0
-        do c2 = 1, nm_columns
-          do r2 = 1, nm_rows
+        do c2 = 1, nc
+          do r2 = 1, nr
             if ( k > l ) then
 
-            call DerivativeOverlap(sites_array, nmstates_el, r2, c2, r1, c1, derivativeMtx)
+            call DerivativeOverlap(site, ns_el, r2, c2, r1, c1, derivativeMtx)
 
-            dermtx(k*nmstates_el+1:k*nmstates_el+nmstates_el, l*nmstates_el+1:l*nmstates_el+nmstates_el) =  &
-            RESHAPE(derivativeMtx, (/nmstates_el, nmstates_el/) ) !triangulo de baixo
+            dermtx(k*ns_el+1:k*ns_el+ns_el, l*ns_el+1:l*ns_el+ns_el) =  &
+            RESHAPE(derivativeMtx, (/ns_el, ns_el/) ) !triangulo de baixo
     
-            dermtx(l*nmstates_el+1:l*nmstates_el+nmstates_el, k*nmstates_el+1:k*nmstates_el+nmstates_el) =  &
-            RESHAPE(transpose(derivativeMtx), (/nmstates_el, nmstates_el/) ) !triangulo de cima
+            dermtx(l*ns_el+1:l*ns_el+ns_el, k*ns_el+1:k*ns_el+ns_el) =  &
+            RESHAPE(transpose(derivativeMtx), (/ns_el, ns_el/) ) !triangulo de cima
                                     
             endif 
             k = k + 1
@@ -249,28 +249,6 @@ subroutine calculate_derivative_matrix(dermtx)
     enddo
 
 end subroutine calculate_derivative_matrix
-
-
-subroutine printaletters3(nomearquivo, nmfile, matrizsize, nmlines, nmcol, matriz)
-    implicit none
-
-    !args
-    character(len=6), intent(in) :: nomearquivo
-    integer,          intent(in) :: nmfile, matrizsize, nmlines, nmcol
-    real*8,           intent(in) :: matriz(matrizsize,matrizsize)
-
-    open(file = nomearquivo, status = "replace", unit = nmfile)
-    do i = 1, nmlines
-       do j = 1, nmcol
-          write(nmfile, 13, advance = "no") matriz(i, j)
-       enddo
-       write(nmfile, 13, advance = "yes")
-    enddo
-    
-    close(nmfile)
-    
-    13 format (8F6.2)
-end subroutine printaletters3
 
 
 end module system_hamiltonian_m
