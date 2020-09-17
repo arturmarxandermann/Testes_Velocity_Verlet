@@ -27,7 +27,6 @@ end subroutine print_mat3
 
 
 subroutine build_hamiltonian(hamiltonian)
-!se el_or_hl = 1 a ham. output é para eletron
     implicit none
 
     !args
@@ -37,9 +36,9 @@ subroutine build_hamiltonian(hamiltonian)
     integer             :: nmstates, c1, r1, s1, s2, c2, r2
     real*8, allocatable :: S(:,:)
     real*8, allocatable :: coup_temp(:,:)
-    real*8,             :: site_type, omegas(nm_rows, nm_columns)
-    real*8,             :: Qnumbers_energy(6)
-    INTEGER,            :: Qnumbers_row(6)
+    real*8              :: site_type(nm_rows, nm_columns), omegas(nm_rows, nm_columns)
+    real*8              :: Qnumbers_energy(6)
+    INTEGER             :: Qnumbers_row(6)
     
     !criando o vetor associado aos valores dos numeros quanticos dos estados do osciladores harmonicos
     Qnumbers_row = [ 00, 01, 10, 02, 11, 20 ]
@@ -112,7 +111,7 @@ subroutine calculate_eigenvectors(pl, hamiltoniana, energias, phi, phi_transpose
     integer             , intent(in)  :: pl
     real*8              , intent(in)  :: hamiltoniana(dim_el,dim_el)
     real*8 , allocatable, intent(out) :: energias(:)
-    real*8 , allocatable, intent(out) :: phi, phi_transpose(:,:), omega_matrix(:,:)
+    real*8 , allocatable, intent(out) :: phi(:,:), phi_transpose(:,:), omega_matrix(:,:)
 
     ! local 
     real*8, allocatable ::  hamiltoniana_diag(:,:)
@@ -124,10 +123,11 @@ subroutine calculate_eigenvectors(pl, hamiltoniana, energias, phi, phi_transpose
     allocate(omega_matrix(dim_el, dim_el)      , source = 0.d0)
     allocate(energias(dim_el)                  , source = 0.d0)
     allocate(hamiltoniana_diag(dim_el, dim_el) , source = 0.d0)
-    
+   
+    info = 0 
     hamiltoniana_diag = hamiltoniana
     
-    call syevd(hamiltoniana_diag, energias, "V", "L", 0)
+    call syevd(hamiltoniana_diag, energias, "V", "L", info)
     
     !If info = 0, contains the n orthonormal eigenvectors, stored by columns.
     !(The i-th column corresponds to the ith eigenvalue.)

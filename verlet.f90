@@ -119,11 +119,11 @@ subroutine eletric_force(pl, rho_el_real, elHam, EletricForce)
     ! local 
     real*8,  allocatable :: EletricForceDiagonal(:,:), EletricForceNonDiagOne(:,:)
     real*8,  allocatable :: EletricForceNonDiagTwo(:,:)
-    real*8,              :: Qnumbers_energy(6)
+    real*8               :: Qnumbers_energy(6)
     real*8,  allocatable :: ForceStates(:)
     real*8,  allocatable :: derivativeTerm(:,:)
     real*8,  allocatable :: hamTimesRhoEl(:,:)
-    real*8,  allocatable :: dermtx, ElRhoDerTerm(:,:)
+    real*8,  allocatable :: dermtx(:,:), ElRhoDerTerm(:,:)
     real*8,  allocatable :: MtxElForceNonDiagOne(:,:), MtxElForceNonDiagTwo(:,:)
     real*8,  allocatable :: ElHamRhoDer(:,:)
     real*8               :: ElForceNonDiagOne, ElForceNonDiagTwo
@@ -193,10 +193,10 @@ subroutine eletric_force(pl, rho_el_real, elHam, EletricForce)
     enddo
     
    !==========================================================================
-   EletricForceNonDiagOne(:, :) =  2.d0 * ev_to_joule * sites_array(:, :)%t * MtxElForceNonDiagOne(:, :)  
+   EletricForceNonDiagOne(:,:) =  2.d0 * ev_to_joule * sites_array(:,:)%t * MtxElForceNonDiagOne(:,:)  
    
    ! ================== FORCA ELETRICA TOTAL =====================
-   EletricForce(:, :) = - EletricForceDiagonal(:, :) - EletricForceNonDiagOne(:, :) !+ EletricForceNonDiagTwo(i, j)
+   EletricForce(:,:) = - EletricForceDiagonal(:,:) - EletricForceNonDiagOne(:,:) !+ EletricForceNonDiagTwo(i, j)
    !==============================================================
    
    
@@ -246,14 +246,14 @@ subroutine velocity_verlet(pl, BWRadius, BWRadialVel, BWEletricForce, BWSpringFo
 
     !========== CALCULO DOS NOVOS RAIOS BASEDOS NA FORCA EM t ======================
 
-    FWRadius(:, :) = BWRadius(:, :) + ( BWRadialVel(:, :) *  (delta_t * 1.d-12)) + (BWForce(:, :) * &
-                   ( ( (delta_t * 1.d-12))**2.d0 / (2.d0 * sites_array(:, :)%mass ) ) )
+    FWRadius(:,:) = BWRadius(:,:) + ( BWRadialVel(:,:) *  (delta_t * 1.d-12)) + (BWForce(:,:) * &
+                   ( ( (delta_t * 1.d-12))**2.d0 / (2.d0 * sites_array(:,:)%mass ) ) )
 
     !===============================================================================
 
     !========= ATUALIZO O RAIO E OMEGA ==============================================
-     sites_array(:, :)%radius = FWRadius(:, :)
-     sites_array(:, :)%omega = ( 2.d0 * hbar / ( me  * (sites_array(:, :)%radius)**2.0 ) ) * hz_to_thz
+     sites_array(:,:)%radius = FWRadius(:,:)
+     sites_array(:,:)%omega = ( 2.d0 * hbar / ( me  * (sites_array(:,:)%radius)**2.0 ) ) * hz_to_thz
     !================================================================================
 
     !======== CALCULO DAS NOVAS FORCAS EM t + delta t ===============================
@@ -262,16 +262,16 @@ subroutine velocity_verlet(pl, BWRadius, BWRadialVel, BWEletricForce, BWSpringFo
     !===============================================================================
     
     !======= TOTAL FORWARD FORCE ==================================================
-     FWForce(:, :) = FWEletricForce(:, :) + FWSpringForce(:, :)
+     FWForce(:,:) = FWEletricForce(:,:) + FWSpringForce(:,:)
     !==============================================================================
     
     !====== NOVA VELOCIDADE RADIAL ===================================================
-    FWRadialVel(:, :) = BWRadialVel(:, :) + ( BWForce(:, :) + FWForce(:, :) ) * ( (delta_t * 1.d-12) / (2.d0 &
-            * sites_array(:, :)%mass ) ) 
+    FWRadialVel(:,:) = BWRadialVel(:,:) + ( BWForce(:,:) + FWForce(:,:) ) * ( (delta_t * 1.d-12) / (2.d0 &
+            * sites_array(:,:)%mass ) ) 
     !=================================================================================
     
     !===== ATUALIZO A VELOCIDADE RADIAL  ===========================================
-     sites_array(:, :)%radial_vel = FWRadialVel(:, :) 
+     sites_array(:,:)%radial_vel = FWRadialVel(:,:) 
     !==============================================================================
 
     deallocate(BWForce, FWForce) 
