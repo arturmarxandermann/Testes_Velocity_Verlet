@@ -16,18 +16,12 @@ type quantum_site
 end type quantum_site
 
 type operators
-real*8, ALLOCATABLE, dimension(:, :) :: elements
+    real*8, ALLOCATABLE, dimension(:,:) :: elements
 end type operators
 
 
 type tensor_product_matrices
-  real*8, ALLOCATABLE, DIMENSION(:, :) :: elements
-
+    real*8, ALLOCATABLE, DIMENSION(:,:) :: elements
 end type
-
-
-
-
-
 
 end module types_m
