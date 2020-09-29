@@ -22,15 +22,17 @@ use constants_m
     real*8,  parameter :: multFactorDer =  1.d0 !fator que estou multiplicando os elementos 0010 e 1000 da matriz derivada
     real*8,  parameter :: multFactorOvlp = 1.d0 !fator que estou multiplicando os elementos 0010 e 1000 da matriz de overlap
     
+    real*8             :: Qn_erg(6)
+    INTEGER            :: Qn(6)
     
     real*8,  parameter :: me = effectiveMassMult * electronMass !massa efetiva do eletron
     real*8                          :: energiazeroel
     real*8                          :: dt
     integer                         :: neqn
-    complex*16,         allocatable :: rho_ham_in(:,:)
     real*8,             allocatable :: frequency_matrix(:,:)
-    real*8,             allocatable :: hamiltoniano(:,:), RWMatrix(:,:) 
-    type(quantum_site), allocatable :: site(:,:)
-
+    real*8,             allocatable :: h_mtx(:,:), RWMatrix(:,:) 
+    type(quantum_site), target, allocatable :: site(:,:)
+    type(obj_pointer)         , allocatable :: site_point(:)
+    type(BasisBuild)          , allocatable :: basis(:,:)
 
 end module parameters_m

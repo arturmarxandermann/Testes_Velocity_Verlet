@@ -10,11 +10,12 @@ use system_hamiltonian_m
 use rdftensor_m
 use functions_m
 use ordinary_equation_solution
-use testes
+use time_evolution_m
 use verlet_m 
 
 implicit none
 
-call call_ODE_solver(nm_divisoes)
+
+    call System_Dynamics(nm_divisoes)
 
 end program DynamicsOfOQS
