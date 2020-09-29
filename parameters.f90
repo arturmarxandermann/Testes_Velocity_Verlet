@@ -30,7 +30,7 @@ use constants_m
     real*8                          :: dt
     integer                         :: neqn
     real*8,             allocatable :: frequency_matrix(:,:)
-    real*8,             allocatable :: h_mtx(:,:), RWMatrix(:,:) 
+    real*8,             allocatable :: h_mtx(:,:), RWMatrix(:,:)
     type(quantum_site), target, allocatable :: site(:,:)
     type(obj_pointer)         , allocatable :: site_point(:)
     type(BasisBuild)          , allocatable :: basis(:,:)

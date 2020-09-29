@@ -106,7 +106,6 @@ subroutine Basis_Builder_Blocks
           basis(i, j)%cmax = l*ns_el+ns_el
 
           k = k + 1
-          
       enddo
      k = 0 
      l = l + 1 
@@ -125,21 +124,18 @@ subroutine Basis_Builder_hMtx
 
 
     do j = 1, nsites
-     
-      do k = 1, ns_el 
-        basis(j, j)%hMtx(k, k) = site_point(j)%np%V0 + HB_ev_ps * site_point(j)%np%omega * Qn_erg(k)
+     do i = 1, nsites
+      call Overlap(i, j, SMtx)
+      basis(i, j)%hMtx(:,:) = SMtx(:,:) * site_point(i)%np%t 
+      deallocate(SMtx) 
       enddo
-
-      do i = 1, nsites
-        if ( i > j ) then 
-          call Overlap(i, j, SMtx)
-          basis(i, j)%hMtx(:,:) = SMtx(:,:) * site_point(i)%np%t 
-          deallocate(SMtx) 
-        endif 
-      enddo
-
     enddo
-
+  
+    do i = 1, nsites
+      do k = 1, ns_el 
+        basis(i, i)%hMtx(k, k) = site_point(i)%np%V0 + HB_ev_ps * site_point(i)%np%omega * Qn_erg(k)
+      enddo
+    enddo
 
 end subroutine Basis_Builder_hMtx
 
@@ -155,13 +151,9 @@ subroutine Basis_Builder_DerMtx
 
     do j = 1, nsites
      do i = 1, nsites
-        if ( i > j ) then 
-          call DerivativeOverlap(i, j, DMtx)
-          basis(i, j)%DerMtx(:,:) = DMtx
-          deallocate(DMtx) 
-        endif 
+      call DerivativeOverlap(i, j, DMtx)
+      basis(i, j)%DerMtx(:,:) = DMtx
       enddo
-
     enddo
 
 
@@ -256,54 +248,52 @@ subroutine Overlap(s1, s2, SMtx)
     
     EXPd2 = EXP( - HALF * d2 * mhbar * wden2 * wproduct2)
     
+    if ( s1 /= s2 ) then
+      do j = 1 , ns_el
+        do i = 1 , ns_el
+          Q_numbers = 100*Qn(i) + 1*Qn(j)
+          select case (Q_numbers)
+            case(0000)
+            SMtx(i, j) = 2.d0*EXPd2*wden2*wproduct
     
-    
-    do j = 1 , ns_el
-      do i = 1 , ns_el
-        Q_numbers = 100*Qn(i) + 1*Qn(j)
-        select case (Q_numbers)
-          case(0000)
-          SMtx(i, j) = 2.d0*EXPd2*wden2*wproduct
-    
-          case(0001)
-          SMtx(i, j) = (2.d0*SQRT2*d*EXPd2*sinth*Sqrt(mhbar*w2)*(-(hbar*SQOmega1PlusOmega2) + &
+            case(0001)
+            SMtx(i, j) = (2.d0*SQRT2*d*EXPd2*sinth*Sqrt(mhbar*w2)*(-(hbar*SQOmega1PlusOmega2) + &
                     me*sqhbarm*w2*Sqrt(hbarm*wden2))*wden3*wproduct)/hbar
           
-          case(0010)
-          SMtx(i, j) = -2.d0*SQRT2*costh*d*EXPd2*sqmhbar*w1_15*w2*wden4*multFactorOvlp
+            case(0010)
+            SMtx(i, j) = -2.d0*SQRT2*costh*d*EXPd2*sqmhbar*w1_15*w2*wden4*multFactorOvlp
           
           
-          case(0100) 
-          SMtx(i, j) = ((2.d0*SQRT2)*d*EXPd2*sinth*w1_05*Sqrt(mhbar*w1)*w2_15*Sqrt(hbarm*wden2)*wden3)/sqhbarm
+            case(0100) 
+            SMtx(i, j) = ((2.d0*SQRT2)*d*EXPd2*sinth*w1_05*Sqrt(mhbar*w1)*w2_15*Sqrt(hbarm*wden2)*wden3)/sqhbarm
           
-          case(0101)
-          SMtx(i, j) = (4.d0*EXPd2*Sqrt(mhbar*w1)*Sqrt(mhbar*w2)*( (d2*me*Sqrt(hbar*me)*sinth2*sqhbarm*w2_2) + ( hbar2 * &
-          Omega1PlusOmega2) - (d2*hbar*me*sinth2*w2*Omega1PlusOmega2))*Sqrt(hbarm*wden2)*wden5*wproduct)/( hbarm_15 * me2 )
-          
-          
-          case(0110)
-          SMtx(i, j) = -4.d0*costh*d2*EXPd2*sinth*Sqrt(mhbar*w1)*Sqrt(mhbar*w2)*wden6*wproduct3
-          
-          case(1000)
-          SMtx(i, j) = 2.d0*SQRT2*costh*d*EXPd2*sqmhbar*w1*w2_15*wden4*multFactorOvlp 
+            case(0101)
+            SMtx(i, j) = (4.d0*EXPd2*Sqrt(mhbar*w1)*Sqrt(mhbar*w2)*( (d2*me*Sqrt(hbar*me)*sinth2*sqhbarm*w2_2) + ( hbar2 * &
+            Omega1PlusOmega2) - (d2*hbar*me*sinth2*w2*Omega1PlusOmega2))*Sqrt(hbarm*wden2)*wden5*wproduct)/( hbarm_15 * me2 )
           
           
-          case(1001) 
-          SMtx(i, j) = (-4.d0*costh*d2*EXPd2*sinth*w1_05*Sqrt(mhbar*w1)*w2_15*Sqrt(mhbar*w2)*wden7* &
+            case(0110)
+            SMtx(i, j) = -4.d0*costh*d2*EXPd2*sinth*Sqrt(mhbar*w1)*Sqrt(mhbar*w2)*wden6*wproduct3
+          
+            case(1000)
+            SMtx(i, j) = 2.d0*SQRT2*costh*d*EXPd2*sqmhbar*w1*w2_15*wden4*multFactorOvlp 
+          
+          
+            case(1001) 
+            SMtx(i, j) = (-4.d0*costh*d2*EXPd2*sinth*w1_05*Sqrt(mhbar*w1)*w2_15*Sqrt(mhbar*w2)*wden7* &
                     (w1_2*Sqrt(hbarm*wden2) + w2*(-sqhbarm*SQOmega1PlusOmega2 + w2*Sqrt(hbarm*wden2)) + & 
                     2.d0*Sqrt(hbarm*wden2)*wproduct2))/sqhbarm
           
-          case(1010)
-          SMtx(i, j) = (4.d0*EXPd2*Sqrt(mhbar*w1)*Sqrt(mhbar*w2)*Sqrt(hbarm*wden2)*wden5*wproduct*(hbar*sqhbarm*Omega1PlusOmega2 - &
+            case(1010)
+            SMtx(i, j) = (4.d0*EXPd2*Sqrt(mhbar*w1)*Sqrt(mhbar*w2)*Sqrt(hbarm*wden2)*wden5*wproduct*(hbar*sqhbarm*Omega1PlusOmega2 - &
                      costh2*d2*Sqrt(hbar*me)*wproduct2))/hbar 
           
           
-       end select
+          end select
     
-    
+        enddo
       enddo
-    enddo
-
+    endif
 end subroutine Overlap
 
 subroutine DerivativeOverlap(s1, s2, DerOvlp)        
@@ -406,53 +396,55 @@ subroutine DerivativeOverlap(s1, s2, DerOvlp)
     
     EXPd2 = EXP( - HALF * d2 * mhbar * wden2 * wproduct2)
     
-    do j = 1 , ns_el
-      do i = 1 , ns_el
-        Q_numbers = 100*Qn(i) + 1*Qn(j)
-        select case (Q_numbers)
+    if ( s1 > s2 ) then
+      do j = 1 , ns_el
+        do i = 1 , ns_el
+          Q_numbers = 100*Qn(i) + 1*Qn(j)
+          select case (Q_numbers)
     
-        case(0000)
-          DerOvlp(i, j) = -((EXPd2*w1Sw2half*(d2*me*w1_2*w2 + hbar*(-w1_2 + w2_2))*wden6)/hbar)
-        
-        case(0001)
-          DerOvlp(i, j) = ( SQRT2*d*EXPd2*me*sinth*w1_15*(d2*Sqrt(hbar*me)*w1_2*w2+2.d0*hbar*sqhbarm*& 
-                          (-w1_2 + w2_2))*wden8)/hbar2
-        
-        case(0010)
-          DerOvlp(i, j) = SQRT2*multFactorDer*costh*d*EXPd2*Sqrt(me)*(w1/hbar)**1.5d0*(-(d2*me*w1_2*w2) + &
-                          2.d0*hbar*(w1_2 - w2_2))*wden8
-        
-        case(0100) 
-          DerOvlp(i, j) = -((SQRT2*d*EXPd2*me*sinth*w1*Sqrt(w2)*(-(hbar*omega1PlusOmega2*sqhbarm*(3.d0*w1 - w2)) + & 
-                           d2*Sqrt(hbar*me)*w1_2*w2)*wden8)/hbar2 )        
-        
-        case(0101)
-          DerOvlp(i, j) = (2.d0*EXPd2*w1*wden10*(2.d0*hbar2*omegaMinusPlus2 + d4*me2*sinth2*w1_3*w2_2 + &
-                          d2*hbar*me*omega1PlusOmega2*(-3.d0*w1 + cos2th*(2.d0*w1 - w2) + w2)*wproduct2))/hbar2
-        
-        
-        case(0110)
-          DerOvlp(i, j) = (d2*EXPd2*me*sin2th*w1_2*w2*(-2.d0*hbar*omega1PlusOmega2*(2.d0*w1 - w2) + &
-                          d2*me*w1_2*w2)*wden10)/hbar2
-        
-        
-        case(1000)
-          DerOvlp(i, j) = -((multFactorDer*SQRT2*EXPd2*costh*d*w1*Sqrt(me*w2)*(-(hbar*omega1PlusOmega2*(3.d0*w1 - w2)) + &
-                           d2*me*w1_2*w2)*wden8)/(hbar15)) 
-        
-        case(1001) 
-          DerOvlp(i, j) = (d2*EXPd2*me*sin2th*w1_2*w2*(-2.d0*hbar*omega1PlusOmega2*(2.d0*w1 - w2) + &
-                          d2*me*w1_2*w2)*wden10)/hbar2
-        
-        case(1010)
-          DerOvlp(i, j) = (2.d0*w1*EXPd2*wden10*(costh2*d4*me2*w1_3*w2_2 + hbar*omega1PlusOmega2*(2.d0*hbar*(w1_2 - w2_2) + & 
-                          d2*me*(-3.d0*w1 + w2)*wproduct2 + cos2th*d2*me*(-2.d0*w1 + w2)*wproduct2)))/hbar2 
+          case(0000)
+            DerOvlp(i, j) = -((EXPd2*w1Sw2half*(d2*me*w1_2*w2 + hbar*(-w1_2 + w2_2))*wden6)/hbar)
+          
+          case(0001)
+            DerOvlp(i, j) = ( SQRT2*d*EXPd2*me*sinth*w1_15*(d2*Sqrt(hbar*me)*w1_2*w2+2.d0*hbar*sqhbarm*& 
+                            (-w1_2 + w2_2))*wden8)/hbar2
+          
+          case(0010)
+            DerOvlp(i, j) = SQRT2*multFactorDer*costh*d*EXPd2*Sqrt(me)*(w1/hbar)**1.5d0*(-(d2*me*w1_2*w2) + &
+                            2.d0*hbar*(w1_2 - w2_2))*wden8
+          
+          case(0100) 
+            DerOvlp(i, j) = -((SQRT2*d*EXPd2*me*sinth*w1*Sqrt(w2)*(-(hbar*omega1PlusOmega2*sqhbarm*(3.d0*w1 - w2)) + & 
+                             d2*Sqrt(hbar*me)*w1_2*w2)*wden8)/hbar2 )        
+          
+          case(0101)
+            DerOvlp(i, j) = (2.d0*EXPd2*w1*wden10*(2.d0*hbar2*omegaMinusPlus2 + d4*me2*sinth2*w1_3*w2_2 + &
+                            d2*hbar*me*omega1PlusOmega2*(-3.d0*w1 + cos2th*(2.d0*w1 - w2) + w2)*wproduct2))/hbar2
+          
+          
+          case(0110)
+            DerOvlp(i, j) = (d2*EXPd2*me*sin2th*w1_2*w2*(-2.d0*hbar*omega1PlusOmega2*(2.d0*w1 - w2) + &
+                            d2*me*w1_2*w2)*wden10)/hbar2
+          
+          
+          case(1000)
+            DerOvlp(i, j) = -((multFactorDer*SQRT2*EXPd2*costh*d*w1*Sqrt(me*w2)*(-(hbar*omega1PlusOmega2*(3.d0*w1 - w2)) + &
+                             d2*me*w1_2*w2)*wden8)/(hbar15)) 
+          
+          case(1001) 
+            DerOvlp(i, j) = (d2*EXPd2*me*sin2th*w1_2*w2*(-2.d0*hbar*omega1PlusOmega2*(2.d0*w1 - w2) + &
+                            d2*me*w1_2*w2)*wden10)/hbar2
+          
+          case(1010)
+            DerOvlp(i, j) = (2.d0*w1*EXPd2*wden10*(costh2*d4*me2*w1_3*w2_2 + hbar*omega1PlusOmega2*(2.d0*hbar*(w1_2 - w2_2) + & 
+                            d2*me*(-3.d0*w1 + w2)*wproduct2 + cos2th*d2*me*(-2.d0*w1 + w2)*wproduct2)))/hbar2 
     
-        end select
+          end select
     
     
         enddo
-    enddo
+      enddo
+    endif
     
     DerOvlp = DerOvlp * DerTerm     
 end subroutine DerivativeOverlap

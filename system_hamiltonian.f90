@@ -42,23 +42,14 @@ subroutine build_hamiltonian(hMtx)
     allocate(hMtx(d_el , d_el)        , source = 0.d0 )
 
 
-
-
-
     do j = 1, nsites
       do i = 1, nsites
- 
-           row_min = basis(i, j)%rmin
-           row_max = basis(i, j)%rmax
-           col_min = basis(i, j)%cmin
-           col_max = basis(i, j)%cmax
+        row_min = basis(i, j)%rmin
+        row_max = basis(i, j)%rmax
+        col_min = basis(i, j)%cmin
+        col_max = basis(i, j)%cmax
           
-        if ( i >= j) then  
-          hMtx( row_min : row_max, col_min : col_max ) = basis(i, j)%hMtx  
-          hMtx(col_min : col_max, row_min : row_max ) = transpose(basis(i, j)%hMtx)  
-        endif 
-
-
+        hMtx( row_min : row_max, col_min : col_max ) = basis(i, j)%hMtx  
       enddo
     enddo
 
@@ -142,21 +133,16 @@ subroutine build_derivative_matrix(DerMtx)
 
     do j = 1, nsites
       do i = 1, nsites
- 
-           row_min = basis(i, j)%rmin
-           row_max = basis(i, j)%rmax
-           col_min = basis(i, j)%cmin
-           col_max = basis(i, j)%cmax
-          
-        if ( i >= j) then  
-          DerMtx( row_min : row_max, col_min : col_max ) = basis(i, j)%DerMtx
-          DerMtx( col_min : col_max, row_min : row_max ) = transpose(basis(i, j)%DerMtx)  
-        endif 
-
-
+        row_min = basis(i, j)%rmin
+        row_max = basis(i, j)%rmax
+        col_min = basis(i, j)%cmin
+        col_max = basis(i, j)%cmax
+        
+        DerMtx( row_min : row_max, col_min : col_max ) = basis(i, j)%DerMtx
       enddo
     enddo
     
+    DerMtx = DerMtx + transpose(DerMtx) 
 
 end subroutine build_derivative_matrix
 
