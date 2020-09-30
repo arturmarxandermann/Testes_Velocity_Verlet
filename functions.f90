@@ -66,54 +66,36 @@ subroutine monta_rho(vector, rhoMtx)
     rho_real = 0.d0 
     rho_imag = 0.d0
     
+
+    k = d_el + 1
+    l = ndim + 1
+    do j = 1, d_el-1
+      do i = j+1, d_el
+        rho_real(i, j) = vector(k) !PARTE NÃO DIAGONAL REAL 
+        rho_imag(i, j) = vector(l) !PARTE NÃO DIAGONAL IMAG
+        l = l + 1
+        k = k + 1
+      enddo
+    enddo
     
-    !=== PARTE DIAGONAL REAL ======
+    !==============================
+    forall(i = 1:d_el) rho_imag(i, i) = 0.d0 !PARTE DIAGONAL IMAG 
+    !=======================================
+    
+    rhoMtx = rho_real + transpose(rho_real) + zi * ( rho_imag - transpose(rho_imag) )
+    
+    
     do i = 1, d_el
-      rho_real(i, i) = vector(i)
+      rhoMtx(i, i) = vector(i) !PARTE DIAGONAL REAL 
     enddo
     !===============================
     
-    !=== PARTE NÃO DIAGONAL REAL ===
-    k = d_el + 1
-    do j = 1, d_el
-      do i = 1, d_el
-        if (i > j) then
-          rho_real(i, j) = vector(k)
-          rho_real(j, i) = rho_real(i, j)
-          k = k + 1
-        endif
-      enddo
-    enddo
-    !==============================
-    
-    !==== PARTE NÃO DIAGONAL IMAGINÁRIA =====
-    k = ndim + 1
-    do j = 1, d_el
-      do i = 1, d_el
-        if (i > j) then
-          rho_imag(i, j) = vector(k)
-          rho_imag(j, i) = - rho_imag(i, j)
-          k = k + 1
-        endif
-      enddo
-    enddo
-    
-    forall(i = 1:d_el) rho_imag(i, i) = 0.d0 
-    !=======================================
-    
-    rhoMtx = rho_real + zi * rho_imag
-    
-    
     !======= VERIFICA SE RHO ESTÁ HERMITIANO ======
-    do j = 1, d_el
-      do i = 1, d_el
-        if (i > j) then
-          if ( rho_real(i, j) /= rho_real(j, i) ) then
-            print*, "RHO NÃO ESTÁ HERMITIANO - PARTE REAL DIFERENTE"
-            else if (rho_imag(i, j) /= - rho_imag(j, i) ) then
-              print*, "RHO NÃO ESTÁ HERMITIANO - PARTE IMAGINARIA DIFERENTE"
-              stop 
-            endif
+    do j = 1, d_el-1
+      do i = j+1, d_el
+          if ( rhoMtx(i, j) /= conjg(rhoMtx(j, i) )) then
+            print*, "RHO NÃO ESTÁ HERMITIANO"
+            stop 
           endif
        enddo
     enddo 
@@ -144,36 +126,19 @@ subroutine monta_y(rhoMtx, vector)
     ndim = ((d_el*(d_el + 1)) / 2) !numero de eq. pra resolver na matriz rho_real
 
     
-    !--- PARTE DIAGONAL REAL ---
-    forall(k=1:d_el) vector(k) = real(rhoMtx(k, k))
-    !---------------------
+    forall(k=1:d_el) vector(k) = real(rhoMtx(k, k)) !PARTE DIAGONAL REAL
     
-    !--- PARTE NÃO DIAGONAL REAL ---
     k = d_el + 1
-    do j = 1, d_el
-      do i = 1, d_el
-        if (i > j) then
-          vector(k) = real(rhoMtx(i, j))
-          k = k + 1
-        endif
+    l = ndim + 1
+    do j = 1, d_el-1
+      do i = j+1, d_el
+        vector(k) = real(rhoMtx(i, j)) !PARTE NÃO DIAGONAL REAL
+        vector(l) = aimag(rhoMtx(i, j)) !PARTE NÃO DIAGONAL IMAG
+        k = k + 1
+        l = l + 1
       enddo
     enddo
-    !----------------------
     
-    !--- PARTE NÃO DIAGONAL IMAGINÁRIA ---
-    k = ndim + 1
-    do j = 1, d_el
-      do i = 1, d_el
-        if (i > j) then
-          vector(k) = aimag(rhoMtx(i, j))
-          k = k + 1
-        endif
-      enddo
-    enddo
-    !---------------------------
-    
-    return
-
 end subroutine monta_y
 
 subroutine rhoMtx_to_pop(rhoMtx, pop_matrix)

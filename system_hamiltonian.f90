@@ -42,8 +42,8 @@ subroutine build_hamiltonian(hMtx)
     allocate(hMtx(d_el , d_el)        , source = 0.d0 )
 
 
-    do j = 1, nsites
-      do i = 1, nsites
+    do j = 1, nsites-1
+      do i = j+1, nsites
         row_min = basis(i, j)%rmin
         row_max = basis(i, j)%rmax
         col_min = basis(i, j)%cmin
@@ -52,8 +52,20 @@ subroutine build_hamiltonian(hMtx)
         hMtx( row_min : row_max, col_min : col_max ) = basis(i, j)%hMtx  
       enddo
     enddo
+  
+    hMtx = hMtx + transpose(hMtx) 
 
-    
+    do i = 1, nsites
+      row_min = basis(i, i)%rmin
+      row_max = basis(i, i)%rmax
+      col_min = basis(i, i)%cmin
+      col_max = basis(i, i)%cmax
+      
+      hMtx( row_min : row_max, col_min : col_max ) = basis(i, i)%hMtx
+    enddo
+
+
+
 end subroutine build_hamiltonian
 
 
@@ -105,11 +117,13 @@ subroutine calculate_eigenvectors(pl, hamiltoniana, energias, phi, phi_transpose
     phi_transpose = transpose(phi)
     
     !============== CONSTRUÇÃO DA MATRIZ DE FREQUÊNCIAS ========================
-    do j = 1, d_el
-      do i = 1, d_el
-        omega_matrix(i, j) = (energias(i) - energias(j)) / HB_ev_ps !omegas em 1/s
+    do j = 1, d_el-1
+      do i = j + 1, d_el
+        omega_matrix(i, j) = (energias(i) - energias(j)) / HB_ev_ps 
       enddo
     enddo
+
+    omega_matrix = omega_matrix + transpose(omega_matrix) 
     !============================================================================
     
     13 format(3es14.5E3)
@@ -131,8 +145,9 @@ subroutine build_derivative_matrix(DerMtx)
     allocate( DerMtx(d_el, d_el), source = 0.d0 )
 
 
-    do j = 1, nsites
-      do i = 1, nsites
+    do j = 1, nsites-1
+      do i = j + 1, nsites
+
         row_min = basis(i, j)%rmin
         row_max = basis(i, j)%rmax
         col_min = basis(i, j)%cmin

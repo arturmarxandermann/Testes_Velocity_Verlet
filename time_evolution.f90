@@ -101,7 +101,7 @@ subroutine System_Dynamics(nm_divisoes)
     
     
       !============== EVOLUCAO PARA O ELETRON DE ti ATÉ tf =======
-      call PropOfWavePacket(pl, ti, tf, hMtx, rhoSites_in, rhoSites, EnergiaEl)
+      call PropOfWavePacket(pl, ti, tf, hMtx, rhoSites_in, rhoSites, EnergiaEl) !propago função de onda
       !===========================================================
       
       !============= ATUALIZO AS CONDICOES INICIAIS QUANTICAS ==============
