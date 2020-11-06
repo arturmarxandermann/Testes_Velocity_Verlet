@@ -24,19 +24,19 @@ INCS = $(INCS_MKL)
 # general rules
 #-----------------------------------------------------------------------
 SOURCE = types.o\
-   	 constants.o\
-	 parameters.o\
-	 functions.o\
-	 overlap.o\
-	 system_hamiltonian.o\
-	 verlet.o\
-	 system_operators.o\
-	 rdftensor.o\
-         ode.o\
-	 gnugraphs.o\
-	 plot_auto_function.o\
-	 test.o\
-   	 main.o\
+       constants.o\
+     parameters.o\
+     functions.o\
+     overlap.o\
+     system_hamiltonian.o\
+     verlet.o\
+     rdftensor.o\
+          ode.o\
+     time_evolution.o\
+       main.o\
+
+
+
 
 a: $(SOURCE)
 	-rm -f a
