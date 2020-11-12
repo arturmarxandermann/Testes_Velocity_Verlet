@@ -45,53 +45,58 @@ subroutine System_Dynamics(nm_divisoes)
     real*8,     allocatable     :: FWEforce(:,:), FWVforce(:,:)    !Forward variables
     real*8,     allocatable     :: rhoReal(:,:)                    !parte real da matriz densidade
     complex*16, allocatable     :: rhoSites_in(:,:)                !matriz densidade inicial
+    complex*16, allocatable     :: rhoSitesPolar_in(:,:)                !matriz densidade inicial
     complex*16, allocatable     :: rhoSites(:,:)                   !matriz densidade calculada em t + delta t
 
      
     integer :: nn, ll, points 
     real*8 :: EQForce 
+    complex*16, allocatable :: TMtx(:,:), TMtxDg(:,:)
 
     allocate( rhoSites_in(d_el, d_el), source = (0.d0, 0.d0))
+    allocate( rhoSitesPolar_in(d_el, d_el), source = (0.d0, 0.d0))
     allocate( rhoReal(d_el, d_el ),    source = 0.d0        ) 
+    allocate( TMtxDg(d_el, d_el),      source = (0.d0, 0.d0)) 
     allocate( basis(nsites, nsites)                         ) 
     do j = 1, nsites
      do i = 1, nsites
-        allocate ( basis(i, j)%hMtx(ns_el, ns_el), source = 0.d0 )
-        allocate ( basis(i, j)%DerMtx(ns_el, ns_el), source = 0.d0 )
+        allocate ( basis(i, j)%hMtx(ns_el, ns_el),   source = 0.d0         )
+        allocate ( basis(i, j)%DerMtx(ns_el, ns_el), source = 0.d0         )
+        allocate ( basis(i, j)%TMtx(ns_el, ns_el),   source = (0.d0, 0.d0) ) 
      enddo
     enddo
 
-    nn = 1
-    ll = 0
-    points = 750 
   
     call Basis_Builder_Blocks
     call define_sitios(site, site_point) 
 
 
-    call plot_wavefunction(nn, ll, points) 
-
-
-    stop 
-
+    call build_TMatrix(TMtx)
     
-     !criando o vetor associado aos valores dos numeros quanticos dos estados do osciladores harmonicos
-    Qn = [ 00, 01, 10, 02, 11, 20 ]
-    Qn_erg = [ 1.d0, 2.d0, 2.d0, 3.d0, 3.d0, 3.d0 ]
+
+    TMtxDg = transpose( conjg(TMtx) )
 
 
-    !============= CONDICOES INICIAIS NA BASE DOS SITIOS ==============
-    rhoSites_in(initState, initState) = 1.d0 + 0.d0 * zi  !matriz densidade
+    call build_EnergyVectors(Qn, Qn_erg)  
+
+
+
+    !============= CONDICOES INICIAIS NA BASE(x,y) DOS SITIOS ==============
+    rhoSitesPolar_in(initState, initState) = 1.d0 + 0.d0 * zi  !matriz densidade
     BWRadius = site(:, :)%radius                          !raio inicial
     BWVel = site(:, :)%vel                                !velocidade inicial
     rhoReal = real(rhoSites_in)                           !parte real da matriz densidade
-    call Basis_Builder_hMtx
     call build_hamiltonian(hMtx)
     call eletric_force(pl, rhoReal, 0.d0, hMtx, BWEforce) !Backward Eforce
     call spring_force(BWVforce)                           !Backward SpringForce
     call kinect_energy(BWVel, K_energ_init)               !Energia cinetica inicial
     !================================================================
     
+
+    !============ CONDICOES INICIAIS NA BASE(r, theta) DOS SITIOS
+    rhoSites_in = matmul(TMtx, matmul(rhoSitesPolar_in, TMtxDg) ) 
+
+
     !======= SUBROTINA QUE ABRE OS ARQUIVOS DE ESCRITA =============
     call open_write_files
     !==============================================================
@@ -111,7 +116,6 @@ subroutine System_Dynamics(nm_divisoes)
     
     
       !=============== CALCULO DO HAMILTONIANO  ================
-      call Basis_Builder_hMtx
       call build_hamiltonian(hMtx)
       !==========================================================
      
@@ -120,6 +124,8 @@ subroutine System_Dynamics(nm_divisoes)
       !============== EVOLUCAO PARA O ELETRON DE ti ATÉ tf =======
       call PropOfWavePacket(pl, ti, tf, hMtx, rhoSites_in, rhoSites, EnergiaEl) !propago função de onda
       !===========================================================
+      
+      write(201, "(60F20.8)") ti,  ( ( real(rhoSites_in(i, i)) ), i = 1, d_el ) 
       
       !============= ATUALIZO AS CONDICOES INICIAIS QUANTICAS ==============
       rhoSites_in = rhoSites !atualizo cond. inicial para o eletron
@@ -137,7 +143,7 @@ subroutine System_Dynamics(nm_divisoes)
       !============ ESCREVE AS ENERGIAS CLASSICAS E QUANTICAS ============================================
       write(84, "(60F20.8)")  ti, K_Energy
       write(85, "(60F20.8)")  ti, V_Energy
-      write(86, "(60F20.8)")  ti, energiazeroel + K_energ_init 
+      write(86, "(60F20.8)")  ti, energiazeroel !+ K_energ_init 
       write(87, "(60F20.8)")  ti, EnergiaEl
       write(103, "(60F20.8)") ti, EnergiaEl + V_Energy + K_Energy
       write(105, "(60F20.8)") ti, FWTemp       
@@ -152,19 +158,19 @@ subroutine System_Dynamics(nm_divisoes)
       deallocate(FWEforce, FWVel, FWRadius, FWVforce) 
       !===================================================================================================
 
-      EQForce = ( BWVforce(1, 1) + BWEforce(1, 1) ) * 1.d10
 
-      if ( abs(EQForce) <= 1.d-3 ) then
-        print*, "RAIO DE EQUILIBRIO", (site(1, 1)%radius - site(1, 1)%radius0) * 1d9
-        call plot_wavefunction(nn, ll, points) 
-        stop 
-      endif
+      !EQForce = ( BWVforce(1, 1) + BWEforce(1, 1) ) * 1.d10
+      !if ( abs(EQForce) <= 1.d-3 ) then
+       ! print*, "RAIO DE EQUILIBRIO", (site(1, 1)%radius - site(1, 1)%radius0) * 1d9
+      !  call plot_wavefunction(nn, ll, points) 
+      !  stop 
+      !endif
 
       
       !========== ESCREVE OS RAIOS E AS FORÇAS ===========================================================
       write(100,  '(60F12.5)') tf, ( ( site(1, i)%radius*1.d9 ), i = 1, nsites ) 
-      write(101,  '(60F12.5)') tf, ( ( BWVforce(1, i)*1.d10 ), i = 1, nsites ) 
-      write(102,  '(60F12.5)') tf, ( ( BWEforce(1, i)*1.d10 ), i = 1, nsites ) 
+      write(101,  '(60F12.5)') tf, ( ( BWVforce(1, i)*1.d10   ), i = 1, nsites ) 
+      write(102,  '(60F12.5)') tf, ( ( BWEforce(1, i)*1.d10   ), i = 1, nsites ) 
       !===================================================================================================
       
       !========= ATUALIZO O TEMPO ===========
@@ -178,7 +184,7 @@ subroutine System_Dynamics(nm_divisoes)
     
     
     
-    DEALLOCATE(rhoSites_in)
+    DEALLOCATE(rhoSites_in, rhoSitesPolar_in)
 end subroutine System_Dynamics
 
 

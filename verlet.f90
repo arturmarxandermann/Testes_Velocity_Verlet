@@ -129,14 +129,12 @@ subroutine eletric_force(pl, rhoElReal, time, elHam, Eforce)
     
     ! local 
     real*8,  allocatable :: MtxEforceDiagonal(:,:)
-    real*8               :: Qn_erg(6)
     real*8,  allocatable :: ForceStates(:)
     real*8,  allocatable :: derTerm(:,:)
     real*8,  allocatable :: DerMtx(:,:), RhoTimesDer(:,:)
     real*8,  allocatable :: MtxEforceND1(:,:)
     real*8               :: EforceND1
     
-    Qn_erg = [ 1.d0, 2.d0, 2.d0, 3.d0, 3.d0, 3.d0 ]
 
 
     allocate( MtxEforceND1(nr, nc)      , source = 0.d0 )
@@ -151,7 +149,6 @@ subroutine eletric_force(pl, rhoElReal, time, elHam, Eforce)
     !==================================================================
     
     !=========== CALCULO DA MATRIZ DERIVA =========
-    call Basis_Builder_DerMtx
     call build_derivative_matrix(DerMtx)
     !==============================================
     
@@ -166,7 +163,7 @@ subroutine eletric_force(pl, rhoElReal, time, elHam, Eforce)
        do i = 1, nr
     
        do k = 1, ns_el
-          ForceStates(k) = rhoElReal(l, l) * hbar * 3.d0 !QN_erg(k)
+          ForceStates(k) = rhoElReal(l, l) * hbar * Qn_erg(k)
           l = l + 1
        enddo
     
@@ -299,8 +296,10 @@ subroutine velocity_verlet(pl, BWRadius, BWVel, BWEforce, BWVforce, time, dt, rh
     !===== BERENDSEN SCALE 
     call calculate_BRDscale(dt_ps, FWTemp, BRDscale)
 
+    if (BRD_on == 1 ) BRDscale = 1.d0
+    
     !======= CALCULO DOS NOVOS RAIOS EM t
-    FWRadius = BWRadius + (BWVel * BRDscale * dt_ps) + (HALF * BWAcc * dt_ps * dt_ps)
+    FWRadius = BWRadius + (BWVel * dt_ps) + (HALF * BWAcc * dt_ps * dt_ps)
 
     !======= ATUALIZO O RAIO E OMEGA 
     site%radius = FWRadius
@@ -320,7 +319,7 @@ subroutine velocity_verlet(pl, BWRadius, BWVel, BWEforce, BWVforce, time, dt, rh
     FWVel = BWVel + HALF * dt_ps * (BWAcc + FWAcc) 
     
     !======== BERENDSEN THERMOSTAT 
-    FWVel = FWVel !*BRDscale
+    FWVel = FWVel * BRDscale
  
     !======== ATUALIZO A VELOCIDADE RADIAL 
     site%vel = FWVel

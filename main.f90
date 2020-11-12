@@ -15,7 +15,9 @@ use verlet_m
 
 implicit none
 
+
     
+
     call System_Dynamics(nm_divisoes)
 
 

@@ -22,7 +22,7 @@ module constants_m
     real*8 , parameter :: hbar = 1.05457172647d-34 !J.s 
     real*8 , parameter :: PI = 3.141592653589793238462643383279502884197d0
     real*8 , parameter :: SQRT2 = 1.4142135623730950488d0
-    
+    real*8, parameter :: SQRT2_INV = 1.d0 / SQRT2   
     
     
 

@@ -8,6 +8,7 @@ type quantum_site
     real*8 :: mass
     real*8 :: V0
     real*8 :: omega
+    real*8 :: omega0 
     real*8 :: xPos
     real*8 :: yPos
 end type quantum_site
@@ -23,6 +24,7 @@ type BasisBuild
     integer :: cmax 
     real*8, allocatable  :: hMtx(:,:)
     real*8, allocatable  :: DerMtx(:,:) 
+    complex*16, allocatable :: TMtx(:,:) 
 end type BasisBuild
 
 type operators

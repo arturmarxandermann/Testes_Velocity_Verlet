@@ -251,19 +251,20 @@ end subroutine printa_resultado
 subroutine open_write_files
 implicit none
 
-    open(15,  file =  'popSiteBasis',     status = 'replace')  !eletron base local
-    open(14,  file =  'popNonSiteBasis',  status = 'replace')  !eletron base desloc.
-    open(100, file =  'radius',           status = 'replace')
-    open(101, file =  'Vforces',          status = 'replace')
-    open(102, file =  'Eforces',          status = 'replace')
-    open(103, file =  'energiatotal',     status = 'replace')
-    open(84,  file =  'energiacinetica',  status = 'replace')
-    open(85,  file =  'energiapotencial', status = 'replace')
-    open(86,  file =  'energiazero',      status = 'replace')
-    open(87,  file =  'energiael',        status = 'replace')
-    open(80,  file =  'energiaham',       status = 'replace')
-    open(105, file =  'temperature',      status = 'replace')
-
+    open(15,  file =  'popSiteBasis.dat',     status = 'replace')  !eletron base local
+    open(14,  file =  'popNonSiteBasis.dat',  status = 'replace')  !eletron base desloc.
+    open(100, file =  'radius.dat',           status = 'replace')
+    open(101, file =  'Vforces.dat',          status = 'replace')
+    open(102, file =  'Eforces.dat',          status = 'replace')
+    open(103, file =  'energiatotal.dat',     status = 'replace')
+    open(84,  file =  'energiacinetica.dat',  status = 'replace')
+    open(85,  file =  'energiapotencial.dat', status = 'replace')
+    open(86,  file =  'energiazero.dat',      status = 'replace')
+    open(87,  file =  'energiael.dat',        status = 'replace')
+    open(80,  file =  'energiaham.dat',       status = 'replace')
+    open(105, file =  'temperature.dat',      status = 'replace')
+    open(201, file =  'states.dat',           status = 'replace')
+    
 
 return
 end subroutine open_write_files
@@ -283,6 +284,7 @@ close(86)
 close(87)
 close(80) 
 close(105) 
+close(201) 
 
 return
 end subroutine close_write_files
@@ -458,8 +460,8 @@ subroutine plot_wavefunction(nn, ll, points)
 
     phipolarsq = phipolar * conjg(phipolar) 
 
-    open(200, file = 'phipolar', status = 'replace' ) 
-    open(201, file = 'radialfunc', status = 'replace' )
+    open(200, file = 'phipolar.dat', status = 'replace' ) 
+    open(201, file = 'radialfunc.dat', status = 'replace' )
 
 
     do j = 1, points

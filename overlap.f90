@@ -29,6 +29,7 @@ subroutine define_sitios(site, site_point)
     site%radius  = site%radius0
     site%vel     = velZero !2.d3
     site%omega   = ( 2.d0 * hbar / ( me * (site%radius)**2.0 ) ) * hz_to_thz   !largura a meia altura
+    site%omega0   = site%omega * 1.d12 
     site%V0      = 0.d0
 
     
@@ -93,32 +94,6 @@ subroutine Basis_Builder_Blocks
     enddo
 
 end subroutine Basis_Builder_Blocks  
-
-
-subroutine Basis_Builder_hMtx
-    implicit none
-
-
-    !local
-    real*8, allocatable :: SMtx(:,:) 
-    integer             :: i, j, k
-
-
-    do j = 1, nsites-1
-     do i = j + 1, nsites
-      call Overlap(i, j, SMtx)
-      basis(i, j)%hMtx(:,:) = SMtx(:,:) * site_point(i)%np%t 
-      deallocate(SMtx) 
-      enddo
-    enddo
-  
-    do i = 1, nsites
-      do k = 1, ns_el 
-        basis(i, i)%hMtx(k, k) = site_point(i)%np%V0 + HB_ev_ps * site_point(i)%np%omega * Qn_erg(k)
-      enddo
-    enddo
-
-end subroutine Basis_Builder_hMtx
 
 
 subroutine Basis_Builder_DerMtx

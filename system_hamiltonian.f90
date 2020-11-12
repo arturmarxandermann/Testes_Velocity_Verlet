@@ -1,5 +1,4 @@
 module system_hamiltonian_m
-!modulo com subrotinas para criar a hamiltoniana do sistema
 use f95_precision
 use lapack95
 use blas95
@@ -25,14 +24,48 @@ subroutine print_mat3(aa, nn, mm)
     enddo
 end subroutine print_mat3
 
+subroutine build_EnergyVectors(Qn, Qn_erg) 
+    implicit none
+    !subrotina para calcular os argumentos baseados
+    !em BasisChoice
+
+    !args 
+    integer, intent(out), allocatable :: Qn(:)
+    real*8, intent(out), allocatable :: Qn_erg(:)
+
+
+    select case ( BasisChoice ) 
+        case (1) 
+            allocate ( Qn(1), source = 0 ) 
+            allocate ( Qn_erg(1), source = 0.d0)
+            Qn = [ 00 ]
+            Qn_erg = [ 1.d0 ] 
+        case (2) 
+            allocate ( Qn(2), source = 0 )
+            allocate ( Qn_erg(2), source = 0.d0 )
+            Qn = [ 01, 10 ] 
+            Qn_erg = [ 2.d0, 2.d0 ] 
+        case (3) 
+            allocate ( Qn (3), source = 0 )
+            allocate ( Qn_erg(3), source = 0.d0 )
+            Qn = [ 00, 01, 10 ] 
+            Qn_erg = [ 1.d0, 2.d0, 2.d0 ] 
+    end select
+
+
+end subroutine build_EnergyVectors    
+
 
 subroutine build_hamiltonian(hMtx)
     implicit none
 
     !args
-    real*8, INTENT(OUT), allocatable :: hMtx(:,:)
+    real*8, intent(out), allocatable :: hMtx(:,:)
 
     !local
+    real*8, allocatable :: SMtx(:,:)
+    integer             :: i, j, k
+
     integer             :: c1, r1, s1, s2, c2, r2
 
     
@@ -41,6 +74,27 @@ subroutine build_hamiltonian(hMtx)
     
     allocate(hMtx(d_el , d_el)        , source = 0.d0 )
 
+    
+    ! === CONSTRUO OS BLOCOS DA MATRIZ ====
+
+    do j = 1, nsites-1
+     do i = j + 1, nsites
+      call Overlap(i, j, SMtx)
+      basis(i, j)%hMtx(:,:) = SMtx(:,:) * site_point(i)%np%t
+      deallocate(SMtx)
+      enddo
+    enddo
+
+    do i = 1, nsites
+      do k = 1, ns_el
+        basis(i, i)%hMtx(k, k) = site_point(i)%np%V0 + HB_ev_ps * site_point(i)%np%omega * Qn_erg(k)
+      enddo
+    enddo
+
+    ! ====================================
+
+
+    ! === CONSTRUO A MATRIZ COM OS BLOCOS ACIMA ===
 
     do j = 1, nsites-1
       do i = j+1, nsites
@@ -63,6 +117,8 @@ subroutine build_hamiltonian(hMtx)
       
       hMtx( row_min : row_max, col_min : col_max ) = basis(i, i)%hMtx
     enddo
+
+    ! ================================================
 
 
 
@@ -140,10 +196,27 @@ subroutine build_derivative_matrix(DerMtx)
     real*8, allocatable, intent(out) :: DerMtx(:,:)
 
     !local 
+    real*8, allocatable :: DMtx(:,:)
+    integer             :: i, j, k
     integer :: row_min, row_max, col_min, col_max
     
     allocate( DerMtx(d_el, d_el), source = 0.d0 )
 
+
+
+    ! === CONSTRUO OS BLOCOS DA MATRIZ =======
+
+    do j = 1, nsites
+     do i = 1, nsites
+       if ( i /= j ) then
+        call DerivativeOverlap(i, j, DMtx)
+        basis(i, j)%DerMtx(:,:) = DMtx
+       endif
+      enddo
+    enddo
+
+
+    ! === CONSTRUO A MATRIZ COM OS BLOCOS ACIMA =====
 
     do j = 1, nsites
       do i = 1, nsites
@@ -159,8 +232,71 @@ subroutine build_derivative_matrix(DerMtx)
       enddo
     enddo
 
+   ! ===============================================
+
 
 end subroutine build_derivative_matrix
+
+
+subroutine build_TMatrix(TMtx) 
+    implicit none
+
+    !args
+    complex*16, allocatable, intent(out) :: TMtx(:,:)
+
+
+    !local
+    integer :: row_min, row_max, col_min, col_max 
+
+    allocate( TMtx(d_el, d_el), source = (0.d0, 0.d0) )
+    
+
+    select case ( BasisChoice ) 
+        case (1) 
+            do i = 1, nsites
+                basis(i, i)%TMtx(1, 1) = 1.d0 
+            enddo
+
+        case (2) 
+            do i = 1, nsites
+                basis(i, i)%TMtx(1, 1) = -zi * SQRT2_INV
+                basis(i, i)%TMtx(2, 2) =  SQRT2_INV
+                basis(i, i)%TMtx(2, 1) =  zi * SQRT2_INV
+                basis(i, i)%TMtx(1, 2) =  SQRT2_INV
+            enddo
+
+        case (3) 
+            do i = 1, nsites
+                basis(i, i)%TMtx(1, 1) = 1.d0 
+                basis(i, i)%TMtx(2, 2) = -zi * SQRT2_INV
+                basis(i, i)%TMtx(3, 3) = SQRT2_INV
+
+                basis(i, i)%TMtx(2, 3) = SQRT2_INV
+                basis(i, i)%TMtx(3, 2) = zi * SQRT2_INV
+            enddo
+    end select
+
+
+    !do i = 1, nsites
+
+      !basis(i, i)%TMtx(1, 1) = 1.d0
+      !basis(i, i)%TMtx(2, 2) = - zi * SQRT2_INV
+      !basis(i, i)%TMtx(3, 3) = SQRT2_INV
+      !basis(i, i)%TMtx(2, 3) = SQRT2_INV
+      !basis(i, i)%TMtx(3, 2) = zi * SQRT2_INV
+   !enddo
+
+
+
+    do i = 1, nsites
+      row_min = basis(i, i)%rmin
+      row_max = basis(i, i)%rmax
+      col_min = basis(i, i)%cmin
+      col_max = basis(i, i)%cmax
+      TMtx(row_min : row_max, col_min : col_max ) = basis(i, i)%TMtx
+    enddo
+
+end subroutine build_TMatrix 
 
 
 end module system_hamiltonian_m
