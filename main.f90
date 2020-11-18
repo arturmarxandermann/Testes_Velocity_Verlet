@@ -7,40 +7,40 @@ use parameters_m
 use constants_m
 use overlap_m
 use system_hamiltonian_m
-use system_operators_m
 use rdftensor_m
 use functions_m
 use ordinary_equation_solution
-use plot_auto_function_m
-use gnugraphs_m
-!use edo_solver_m
-use testes
+use time_evolution_m
 use verlet_m 
-!use rkf45_m 
 
 implicit none
 
+    real*8  :: InitSitesRadius(nr, nc), InitSitesVel(nr, nc) 
 
-call create_FT_func
+    if ( therm_on == .true. ) then
+        ElCoup = .false.  
+        InitSitesRadius = raioZero
+        InitSitesVel = velZero
+    else
+        ElCoup = .true. 
+        open ( unit=301, file="therm_radius.dat", status="old", access="sequential" )
+        read(301, *) ( ( InitSitesRadius(1, i) ), i = 1, nsites )
+        close(301)
 
-call call_ODE_solver(nm_divisoes)
+        open ( unit=302, file="therm_vel.dat"  ,  status="old", access="sequential" )
+        read(302, *) ( ( InitSitesVel(1, i) ), i = 1, nsites )
+        close(302)
 
-
-print*, "EVOLUCAO TERMINOU, FAZENDO ARQUIVOS RELACIONADOS &
-COM A FIGURA DOS SITIOS"
-
-!call calculate_fem_autofunction(sites_array)
-
-
-
-
-
-
-
-
-
+        InitSitesRadius = InitSitesRadius * 1.d-9 
+    endif
 
 
-13 format(3es14.5E3)
+
+
+    call System_Dynamics(InitSitesRadius, InitSitesVel, nm_divisoes)
+
+
+
+
 
 end program DynamicsOfOQS
