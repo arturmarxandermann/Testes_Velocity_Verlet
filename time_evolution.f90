@@ -83,6 +83,9 @@ subroutine System_Dynamics(InitSitesRadius, InitSitesVel, nm_divisoes)
     call build_EnergyVectors(Qn, Qn_erg)  
 
 
+    !======= SUBROTINA QUE ABRE OS ARQUIVOS DE ESCRITA =============
+    call open_write_files
+    !==============================================================
 
     !============= CONDICOES INICIAIS NA BASE(x,y) DOS SITIOS ==============
     rhoSitesPolar_in(initState, initState) = 1.d0 + 0.d0 * zi  !matriz densidade
@@ -99,9 +102,6 @@ subroutine System_Dynamics(InitSitesRadius, InitSitesVel, nm_divisoes)
     !============ CONDICOES INICIAIS NA BASE(r, theta) DOS SITIOS
     rhoSites_in = matmul(TMtx, matmul(rhoSitesPolar_in, TMtxDg) ) 
 
-    !======= SUBROTINA QUE ABRE OS ARQUIVOS DE ESCRITA =============
-    call open_write_files
-    !==============================================================
     
     ti = 0.d0
 
